@@ -39,6 +39,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '活动发布管理', icon: 'Calendar' }
       },
       {
+        path: 'activity/edit',
+        name: 'ActivityEdit',
+        component: () => import('@/views/activity/edit.vue'),
+        meta: { title: '活动发布与编辑', icon: 'Calendar', hidden: true }
+      },
+      {
         path: 'student-activity',
         name: 'StudentActivity',
         component: () => import('@/views/student-activity/index.vue'),

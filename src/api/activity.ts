@@ -1,64 +1,112 @@
 import { http } from '@/utils/request'
 import type { PageQuery, PageResult } from './types'
 
+// ────────── VO / DTO 类型定义 ──────────
+
 export interface ActivityVO {
   id: number
   title: string
   description?: string
+  ruleDescription?: string
+  coverImage?: string
+  category?: string
   points: number
   startTime: string
   endTime: string
-  location?: string
-  status: number // 0-未开始 1-进行中 2-已截止
+  registrationLimit?: number
   participantCount?: number
+  waitlistEnabled?: number  // 0-关闭 1-开启
+  locationName?: string
+  locationAddress?: string
+  longitude?: number
+  latitude?: number
+  locationRadius?: number
+  locationCheckEnabled?: number  // 0-关闭 1-开启
+  certificateEnabled?: number    // 0-关闭 1-开启
+  certificateTitle?: string
+  certificateIssuer?: string
+  status: number  // 0-未开始 1-进行中 2-已截止 3-已关闭
   createTime?: string
 }
 
-export interface ActivityDTO {
+export interface ActivitySaveDTO {
+  id?: number
   title: string
   description?: string
+  ruleDescription?: string
+  coverImage?: string
+  category?: string
   points: number
   startTime: string
   endTime: string
-  location?: string
-  status?: number
+  registrationLimit?: number
+  waitlistEnabled?: number
+  locationName?: string
+  locationAddress?: string
+  longitude?: number
+  latitude?: number
+  locationRadius?: number
+  locationCheckEnabled?: number
+  certificateEnabled?: number
+  certificateTitle?: string
+  certificateIssuer?: string
 }
 
-export interface ActivityQuery extends PageQuery {
-  status?: number
+export interface ActivityPageQuery extends PageQuery {
+  keyword?: string
+  status?: number | string
+  category?: string
+}
+
+export interface QrCodeVO {
+  activityId: number
+  nonce: string
+  sign: string
+  expireTime: string
+  validSeconds: number
+  qrContent: string
+}
+
+// ────────── API 函数 ──────────
+
+/**
+ * 分页查询活动列表 GET /activity/page
+ */
+export function getActivityPage(params: ActivityPageQuery): Promise<PageResult<ActivityVO>> {
+  return http.get<PageResult<ActivityVO>>('/activity/page', params)
 }
 
 /**
- * 分页获取活动列表 (GET /api/activities)
+ * 查询活动详情 GET /activity/{id}
  */
-export function getActivityList(params: ActivityQuery): Promise<PageResult<ActivityVO>> {
-  return http.get<PageResult<ActivityVO>>('/activities', params)
+export function getActivityDetail(id: number): Promise<ActivityVO> {
+  return http.get<ActivityVO>(`/activity/${id}`)
 }
 
 /**
- * 根据 ID 获取活动详情 (GET /api/activities/{id})
+ * 管理端创建活动 POST /activity/create
  */
-export function getActivityById(id: number): Promise<ActivityVO> {
-  return http.get<ActivityVO>(`/activities/${id}`)
+export function createActivity(data: ActivitySaveDTO): Promise<ActivityVO> {
+  return http.post<ActivityVO>('/activity/create', data)
 }
 
 /**
- * 新增活动 (POST /api/activities)
+ * 管理端修改活动 PUT /activity/update
  */
-export function createActivity(data: ActivityDTO): Promise<void> {
-  return http.post<void>('/activities', data)
+export function updateActivity(data: ActivitySaveDTO): Promise<ActivityVO> {
+  return http.put<ActivityVO>('/activity/update', data)
 }
 
 /**
- * 修改活动 (PUT /api/activities/{id})
+ * 管理端删除/归档活动 DELETE /activity/{id}
  */
-export function updateActivity(id: number, data: ActivityDTO): Promise<void> {
-  return http.put<void>(`/activities/${id}`, data)
+export function archiveActivity(id: number): Promise<void> {
+  return http.delete<void>(`/activity/${id}`)
 }
 
 /**
- * 删除活动 (DELETE /api/activities/{id})
+ * 管理端生成/刷新活动动态签到二维码 GET /activity/{id}/qrcode
  */
-export function deleteActivity(id: number): Promise<void> {
-  return http.delete<void>(`/activities/${id}`)
+export function getActivityQrCode(id: number): Promise<QrCodeVO> {
+  return http.get<QrCodeVO>(`/activity/${id}/qrcode`)
 }
