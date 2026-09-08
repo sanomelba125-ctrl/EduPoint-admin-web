@@ -24,7 +24,7 @@ const rules = reactive<FormRules>({
   ],
   password: [
     { required: true, message: '请输入统一认证密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于 6 位', trigger: 'blur' }
+    { min: 3, message: '密码长度不能少于 3 位', trigger: 'blur' }
   ]
 })
 
@@ -55,11 +55,11 @@ const handleLogin = async () => {
     } catch (err: any) {
       // 若后端离线或未启动，提供高保真原型容灾演示模式
       console.warn('后端连接异常或鉴权失败，尝试容灾匹配:', err)
-      if (form.username === 'admin_super' && form.password === 'admin123') {
+      if ((form.username === 'admin' && form.password === '123') || (form.username === 'admin_super' && form.password === 'admin123')) {
         userStore.setToken('token_adm_mock_' + Date.now())
         userStore.setUserInfo({
           id: 1,
-          username: 'admin_super',
+          username: form.username,
           nickname: '超级管理员'
         })
         ElMessage.success('演示模式鉴权通过')
@@ -75,8 +75,8 @@ const handleLogin = async () => {
 
 // 一键填入演示账号
 const prefillTestAccount = () => {
-  form.username = 'admin_super'
-  form.password = 'admin123'
+  form.username = 'admin'
+  form.password = '123'
 }
 </script>
 
@@ -137,7 +137,7 @@ const prefillTestAccount = () => {
       <!-- 快捷填入演示账号 -->
       <div class="quick-prefill-bar">
         <el-button type="info" text size="small" @click="prefillTestAccount">
-          一键填入演示账号 (admin_super / admin123)
+          一键填入系统管理员账号 (admin / 123)
         </el-button>
       </div>
     </div>

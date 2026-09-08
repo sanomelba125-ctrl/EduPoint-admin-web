@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, markRaw } from 'vue'
 import { User, Checked, PieChart, Coin } from '@element-plus/icons-vue'
 
 const statCards = ref([
-  { title: '当前总人数', value: '1,280', unit: '人', icon: User, color: '#409EFF' },
-  { title: '签到总人数', value: '1,126', unit: '人次', icon: Checked, color: '#67C23A' },
-  { title: '平均签到率', value: '87.9%', unit: '', icon: PieChart, color: '#E6A23C' },
-  { title: '积分流通总量', value: '45,820', unit: '分', icon: Coin, color: '#F56C6C' }
+  { title: '当前总人数', value: '1,280', unit: '人', icon: markRaw(User), color: '#409EFF' },
+  { title: '签到总人数', value: '1,126', unit: '人次', icon: markRaw(Checked), color: '#67C23A' },
+  { title: '平均签到率', value: '87.9%', unit: '', icon: markRaw(PieChart), color: '#E6A23C' },
+  { title: '积分流通总量', value: '45,820', unit: '分', icon: markRaw(Coin), color: '#F56C6C' }
 ])
 
 const recentCheckins = ref([
