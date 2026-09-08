@@ -10,6 +10,7 @@ export interface LoginParams {
 export interface LoginResult {
   token: string
   userInfo: UserInfo
+  user?: UserInfo
 }
 
 /**
