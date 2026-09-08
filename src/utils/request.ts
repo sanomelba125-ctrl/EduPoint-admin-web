@@ -29,6 +29,10 @@ request.interceptors.request.use(
     if (token) {
       config.headers['satoken'] = token
     }
+    // 若为 FormData 文件上传，删除默认 application/json 让浏览器自动计算 boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
     return config
   },
   (error) => {

@@ -7,7 +7,9 @@ export interface GiftVO {
   description?: string
   image?: string
   pointsCost: number
+  pointsRequired?: number
   stock: number
+  totalStock?: number
   version: number
   status: number // 0-下架 1-上架
   createTime?: string
@@ -18,8 +20,10 @@ export interface GiftCreateDTO {
   name: string
   description?: string
   image?: string
-  pointsCost: number
-  stock: number
+  pointsCost?: number
+  pointsRequired?: number
+  stock?: number
+  totalStock?: number
   status?: number
 }
 
@@ -28,13 +32,16 @@ export interface GiftUpdateDTO {
   name: string
   description?: string
   image?: string
-  pointsCost: number
-  stock: number
+  pointsCost?: number
+  pointsRequired?: number
+  stock?: number
+  totalStock?: number
   status?: number
 }
 
 export interface GiftQuery extends PageQuery {
   name?: string
+  keyword?: string
   status?: number
 }
 
