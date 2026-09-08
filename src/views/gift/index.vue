@@ -440,7 +440,15 @@ onMounted(() => {
               accept="image/jpeg,image/png,image/jpg,image/webp"
             >
               <div v-if="formData.image" class="image-preview-box">
-                <el-image :src="formData.image" fit="cover" class="preview-img" />
+                <el-image :src="formData.image" fit="contain" class="preview-img">
+                  <template #error>
+                    <div class="image-error-slot">
+                      <el-icon :size="28" color="#e6a23c"><Warning /></el-icon>
+                      <span class="error-tip">图片加载失败</span>
+                      <span class="error-sub">点击可重新上传，或检查七牛云空间是否设为公开</span>
+                    </div>
+                  </template>
+                </el-image>
                 <div class="image-hover-mask">
                   <el-icon :size="20"><UploadFilled /></el-icon>
                   <span>点击更换七牛云照片</span>
@@ -637,6 +645,11 @@ onMounted(() => {
   width: 100%;
 }
 
+.gift-uploader :deep(.el-upload) {
+  display: block;
+  width: 100%;
+}
+
 .image-preview-box {
   position: relative;
   width: 100%;
@@ -646,12 +659,46 @@ onMounted(() => {
   border: 1px solid var(--el-border-color);
   background-color: var(--el-fill-color-light);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .preview-img {
   width: 100%;
   height: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-img :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.image-error-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--el-text-color-secondary);
+  padding: 16px;
+  text-align: center;
+}
+
+.image-error-slot .error-tip {
+  color: var(--el-color-warning-dark-2);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.image-error-slot .error-sub {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  line-height: 1.4;
 }
 
 .image-hover-mask {
