@@ -67,6 +67,34 @@ export interface QrCodeVO {
   qrContent: string
 }
 
+/**
+ * 管理端全量查询学生活动记录 GET /activity/record/list
+ */
+export interface ActivityRecordQuery {
+  page?: number
+  size?: number
+  studentName?: string
+  studentNo?: string
+  activityTitle?: string
+  status?: number | string
+}
+
+export interface ActivityRecordVO {
+  id: number
+  studentId?: number
+  activityId?: number
+  studentNo?: string
+  studentName?: string
+  activityTitle?: string
+  signupTime?: string
+  checkinTime?: string
+  pointsAwarded?: number
+  status?: number
+  remark?: string
+  createTime?: string
+  updateTime?: string
+}
+
 // ────────── API 函数 ──────────
 
 /**
@@ -109,4 +137,11 @@ export function archiveActivity(id: number): Promise<void> {
  */
 export function getActivityQrCode(id: number): Promise<QrCodeVO> {
   return http.get<QrCodeVO>(`/activity/${id}/qrcode`)
+}
+
+/**
+ * 管理端全量查询学生活动记录 GET /activity/record/list
+ */
+export function getActivityRecords(params: ActivityRecordQuery): Promise<PageResult<ActivityRecordVO>> {
+  return http.get<PageResult<ActivityRecordVO>>('/activity/record/list', params)
 }
