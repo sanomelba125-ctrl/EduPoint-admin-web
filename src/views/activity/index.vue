@@ -277,7 +277,14 @@ const countdownColor = computed(() => {
           />
         </el-form-item>
         <el-form-item label="活动状态">
-          <el-select v-model="query.status" placeholder="全部状态" style="width: 140px;" clearable>
+          <el-select
+            v-model="query.status"
+            placeholder="全部状态"
+            style="width: 140px;"
+            clearable
+            @change="handleSearch"
+            @clear="handleSearch"
+          >
             <el-option
               v-for="opt in statusOptions"
               :key="opt.value"

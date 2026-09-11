@@ -15,17 +15,17 @@ export interface ActivityVO {
   endTime: string
   registrationLimit?: number
   participantCount?: number
-  waitlistEnabled?: number  // 0-关闭 1-开启
+  waitlistEnabled?: number // 0-关闭 1-开启
   locationName?: string
   locationAddress?: string
   longitude?: number
   latitude?: number
   locationRadius?: number
-  locationCheckEnabled?: number  // 0-关闭 1-开启
-  certificateEnabled?: number    // 0-关闭 1-开启
+  locationCheckEnabled?: number // 0-关闭 1-开启
+  certificateEnabled?: number // 0-关闭 1-开启
   certificateTitle?: string
   certificateIssuer?: string
-  status: number  // 0-未开始 1-进行中 2-已截止 3-已关闭
+  status: number // 0-未开始 1-进行中 2-已截止 3-已关闭
   createTime?: string
 }
 
@@ -68,23 +68,24 @@ export interface QrCodeVO {
 }
 
 /**
- * 管理端全量查询学生活动记录 GET /activity/record/list
+ * 管理端全量查询学生活动记录参数
  */
-export interface ActivityRecordQuery {
-  page?: number
-  size?: number
+export interface ActivityRecordQuery extends PageQuery {
   studentName?: string
   studentNo?: string
   activityTitle?: string
   status?: number | string
 }
 
-export interface ActivityRecordVO {
+/**
+ * 学生活动打卡/报名记录 VO
+ */
+export interface StudentActivityRecordVO {
   id: number
   studentId?: number
-  activityId?: number
   studentNo?: string
   studentName?: string
+  activityId?: number
   activityTitle?: string
   signupTime?: string
   checkinTime?: string
@@ -93,11 +94,14 @@ export interface ActivityRecordVO {
   checkinDistance?: number
   qrNonceUsed?: string
   pointsAwarded?: number
-  status?: number
+  status?: number // 1-已报名(待打卡), 2-已签到出勤(已发分), 3-已失效/已取消
   remark?: string
   createTime?: string
   updateTime?: string
 }
+
+// 别名兼容
+export type ActivityRecordVO = StudentActivityRecordVO
 
 // ────────── API 函数 ──────────
 
@@ -144,8 +148,14 @@ export function getActivityQrCode(id: number): Promise<QrCodeVO> {
 }
 
 /**
- * 管理端全量查询学生活动记录 GET /activity/record/list
+ * 管理端全量分页多条件查询学生活动打卡/报名记录
+ * GET /api/activity/record/list
  */
-export function getActivityRecords(params: ActivityRecordQuery): Promise<PageResult<ActivityRecordVO>> {
-  return http.get<PageResult<ActivityRecordVO>>('/activity/record/list', params)
+export function getActivityRecordList(params?: ActivityRecordQuery): Promise<PageResult<StudentActivityRecordVO>> {
+  return http.get<PageResult<StudentActivityRecordVO>>('/activity/record/list', params)
 }
+
+/**
+ * 别名兼容 getActivityRecords
+ */
+export const getActivityRecords = getActivityRecordList
