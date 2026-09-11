@@ -6,11 +6,14 @@ export interface UserInfo {
   username: string
   nickname: string
   avatar?: string
+  role?: string
 }
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(localStorage.getItem('admin_token') || '')
-  const userInfo = ref<UserInfo | null>(null)
+  
+  const savedUserInfo = localStorage.getItem('admin_user_info')
+  const userInfo = ref<UserInfo | null>(savedUserInfo ? JSON.parse(savedUserInfo) : null)
   const isCollapse = ref<boolean>(false)
 
   const setToken = (newToken: string) => {
@@ -20,6 +23,7 @@ export const useUserStore = defineStore('user', () => {
 
   const setUserInfo = (info: UserInfo) => {
     userInfo.value = info
+    localStorage.setItem('admin_user_info', JSON.stringify(info))
   }
 
   const toggleCollapse = () => {
@@ -30,6 +34,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
     userInfo.value = null
     localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user_info')
   }
 
   return {

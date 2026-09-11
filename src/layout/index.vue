@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { useWebSocket } from '@/hooks/useWebSocket'
 import {
   DataBoard,
   User,
@@ -19,10 +20,21 @@ import {
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { connect, disconnect, isConnected } = useWebSocket()
 
 const activeMenu = computed(() => route.path)
 
+onMounted(() => {
+  const adminId = userStore.userInfo?.id || 1
+  connect('admin', adminId)
+})
+
+onUnmounted(() => {
+  disconnect()
+})
+
 const handleLogout = () => {
+  disconnect()
   userStore.logout()
   router.push('/login')
 }
@@ -101,10 +113,21 @@ const handleLogout = () => {
         </div>
 
         <div class="header-right">
+          <el-tag
+            size="small"
+            :type="isConnected ? 'success' : 'info'"
+            effect="plain"
+            round
+            class="ws-status-tag"
+          >
+            <span class="ws-dot" :class="{ 'is-active': isConnected }"></span>
+            {{ isConnected ? '实时推送就绪' : '推送连接中' }}
+          </el-tag>
+
           <el-dropdown>
             <span class="user-dropdown">
-              <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
-              <span class="username">管理员</span>
+              <el-avatar :size="32" :src="userStore.userInfo?.avatar || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'" />
+              <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username || '管理员' }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -191,6 +214,49 @@ const handleLogout = () => {
   font-size: 15px;
   font-weight: 500;
   color: #303133;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ws-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.ws-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #909399;
+  display: inline-block;
+}
+
+.ws-dot.is-active {
+  background-color: #67c23a;
+  box-shadow: 0 0 8px #67c23a;
+  animation: ws-pulse 2s infinite;
+}
+
+@keyframes ws-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(103, 194, 58, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(103, 194, 58, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(103, 194, 58, 0);
+  }
 }
 
 .user-dropdown {
