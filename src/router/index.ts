@@ -1,5 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { markRaw } from 'vue'
+import {
+  DataBoard,
+  User,
+  School,
+  Calendar,
+  Checked,
+  Coin,
+  Present,
+  ShoppingCart
+} from '@element-plus/icons-vue'
 import Layout from '@/layout/index.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -18,55 +29,55 @@ export const routes: RouteRecordRaw[] = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index.vue'),
-        meta: { title: '数据可视化看板', icon: 'DataBoard' }
+        meta: { title: '数据可视化看板', icon: markRaw(DataBoard) }
       },
       {
         path: 'user',
         name: 'User',
         component: () => import('@/views/user/index.vue'),
-        meta: { title: '系统用户管理', icon: 'User' }
+        meta: { title: '系统用户管理', icon: markRaw(User) }
       },
       {
         path: 'student',
         name: 'Student',
         component: () => import('@/views/student/index.vue'),
-        meta: { title: '学生档案管理', icon: 'School' }
+        meta: { title: '学生档案管理', icon: markRaw(School) }
       },
       {
         path: 'activity',
         name: 'Activity',
         component: () => import('@/views/activity/index.vue'),
-        meta: { title: '活动发布管理', icon: 'Calendar' }
+        meta: { title: '活动发布管理', icon: markRaw(Calendar) }
       },
       {
         path: 'activity/edit',
         name: 'ActivityEdit',
         component: () => import('@/views/activity/edit.vue'),
-        meta: { title: '活动发布与编辑', icon: 'Calendar', hidden: true }
+        meta: { title: '活动发布与编辑', icon: markRaw(Calendar), hidden: true, activeMenu: '/activity' }
       },
       {
         path: 'student-activity',
         name: 'StudentActivity',
         component: () => import('@/views/student-activity/index.vue'),
-        meta: { title: '学生活动打卡', icon: 'Checked' }
+        meta: { title: '学生活动打卡', icon: markRaw(Checked) }
       },
       {
         path: 'student-point',
         name: 'StudentPoint',
         component: () => import('@/views/student-point/index.vue'),
-        meta: { title: '学生积分管理', icon: 'Coin' }
+        meta: { title: '学生积分管理', icon: markRaw(Coin) }
       },
       {
         path: 'gift',
         name: 'Gift',
         component: () => import('@/views/gift/index.vue'),
-        meta: { title: '礼物库管理', icon: 'Present' }
+        meta: { title: '礼物库管理', icon: markRaw(Present) }
       },
       {
         path: 'student-gift',
         name: 'StudentGift',
         component: () => import('@/views/student-gift/index.vue'),
-        meta: { title: '礼物兑换审核', icon: 'ShoppingCart' }
+        meta: { title: '礼物兑换审核', icon: markRaw(ShoppingCart) }
       }
     ]
   },
