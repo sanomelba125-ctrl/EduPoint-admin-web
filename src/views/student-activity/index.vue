@@ -20,23 +20,39 @@ import {
   type ActivityRecordQuery
 } from '@/api/activity'
 
-// 列表与加载状态
-const loading = ref(false)
-const recordList = ref<StudentActivityRecordVO[]>([])
-const total = ref(0)
-
 // 详情弹窗
 const detailDialogVisible = ref(false)
 const currentRecord = ref<StudentActivityRecordVO | null>(null)
 
-// 检索过滤条件
-const queryParams = reactive<ActivityRecordQuery>({
-  page: 1,
-  size: 10,
-  studentName: '',
-  studentNo: '',
-  activityTitle: '',
-  status: undefined
+import { usePageList } from '@/hooks/usePageList'
+
+// 列表与分页状态及检索
+const {
+  loading,
+  list: recordList,
+  total,
+  queryParams,
+  load: fetchRecords,
+  handleSearch,
+  handleReset,
+  handlePageChange,
+  handleSizeChange
+} = usePageList<Omit<ActivityRecordQuery, 'page' | 'size'>, StudentActivityRecordVO>({
+  initialFilters: {
+    studentName: '',
+    studentNo: '',
+    activityTitle: '',
+    status: undefined
+  },
+  fetcher: (params) => {
+    return getActivityRecordList({
+      ...params,
+      studentName: params.studentName?.trim() || undefined,
+      studentNo: params.studentNo?.trim() || undefined,
+      activityTitle: params.activityTitle?.trim() || undefined,
+      status: params.status !== undefined && params.status !== ('' as any) ? Number(params.status) : undefined
+    })
+  }
 })
 
 // 统计指标计算（基于当前加载页及统计概况）
@@ -66,64 +82,7 @@ const stats = computed(() => {
   }
 })
 
-// 异步拉取后端学生活动打卡/参与记录
-const fetchRecords = async () => {
-  loading.value = true
-  try {
-    const params: ActivityRecordQuery = {
-      page: queryParams.page,
-      size: queryParams.size,
-      studentName: queryParams.studentName?.trim() || undefined,
-      studentNo: queryParams.studentNo?.trim() || undefined,
-      activityTitle: queryParams.activityTitle?.trim() || undefined,
-      status: queryParams.status !== undefined && queryParams.status !== ('' as any) ? Number(queryParams.status) : undefined
-    }
 
-    const res: any = await getActivityRecordList(params)
-    if (res && res.records) {
-      recordList.value = res.records
-      total.value = res.total || 0
-    } else if (Array.isArray(res)) {
-      recordList.value = res
-      total.value = res.length
-    } else {
-      recordList.value = []
-      total.value = 0
-    }
-  } catch (err: any) {
-    ElMessage.error(err.message || '获取学生活动记录失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 搜索操作
-const handleSearch = () => {
-  queryParams.page = 1
-  fetchRecords()
-}
-
-// 重置查询条件
-const handleReset = () => {
-  queryParams.studentName = ''
-  queryParams.studentNo = ''
-  queryParams.activityTitle = ''
-  queryParams.status = undefined
-  queryParams.page = 1
-  fetchRecords()
-}
-
-// 分页变更
-const handlePageChange = (val: number) => {
-  queryParams.page = val
-  fetchRecords()
-}
-
-const handleSizeChange = (val: number) => {
-  queryParams.size = val
-  queryParams.page = 1
-  fetchRecords()
-}
 
 // 打开记录详情
 const openDetail = (row: StudentActivityRecordVO) => {
@@ -154,9 +113,6 @@ const formatTime = (timeStr?: string) => {
   return timeStr.replace('T', ' ').substring(0, 19)
 }
 
-onMounted(() => {
-  fetchRecords()
-})
 </script>
 
 <template>

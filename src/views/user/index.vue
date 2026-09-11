@@ -26,22 +26,28 @@ import {
   type SysUserQuery
 } from '@/api/user'
 import { useUserStore } from '@/store/user'
+import { usePageList } from '@/hooks/usePageList'
 
 const userStore = useUserStore()
 
-// 列表与分页状态
-const loading = ref(false)
-const userList = ref<SysUserVO[]>([])
-const total = ref(0)
+// 列表与分页状态及检索
 const statusLoadingId = ref<number | null>(null)
 
-// 检索过滤参数
-const queryParams = reactive<SysUserQuery>({
-  page: 1,
-  size: 10,
-  keyword: '',
-  role: undefined,
-  status: undefined
+const {
+  loading,
+  list: userList,
+  total,
+  queryParams,
+  load: fetchUserList,
+  handleSearch,
+  handleReset
+} = usePageList<Omit<SysUserQuery, 'page' | 'size'>, SysUserVO>({
+  initialFilters: {
+    keyword: '',
+    role: undefined,
+    status: undefined
+  },
+  fetcher: (params) => getUserList(params)
 })
 
 // 表单弹窗状态
@@ -101,34 +107,7 @@ const getRoleTag = (role?: string) => {
   }
 }
 
-// 加载列表数据
-const fetchUserList = async () => {
-  loading.value = true
-  try {
-    const res = await getUserList(queryParams)
-    userList.value = res.records || []
-    total.value = res.total || 0
-  } catch (error) {
-    console.error('获取管理员列表失败:', error)
-  } finally {
-    loading.value = false
-  }
-}
 
-// 搜索操作
-const handleSearch = () => {
-  queryParams.page = 1
-  fetchUserList()
-}
-
-// 重置搜索条件
-const handleReset = () => {
-  queryParams.page = 1
-  queryParams.keyword = ''
-  queryParams.role = undefined
-  queryParams.status = undefined
-  fetchUserList()
-}
 
 // 状态快速切换
 const handleToggleStatus = async (row: SysUserVO, newStatus: boolean) => {
@@ -264,9 +243,6 @@ const handleDelete = (row: SysUserVO) => {
   }).catch(() => {})
 }
 
-onMounted(() => {
-  fetchUserList()
-})
 </script>
 
 <template>

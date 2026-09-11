@@ -22,21 +22,58 @@ import {
   type OrderCancelDTO
 } from '@/api/gift'
 
-const loading = ref(false)
-const orderList = ref<StudentGiftVO[]>([])
-const total = ref(0)
-
-const queryParams = reactive<GiftOrderQuery>({
-  page: 1,
-  size: 10,
-  orderNo: '',
-  pickupCode: '',
-  studentName: '',
-  status: undefined
-})
+import { usePageList } from '@/hooks/usePageList'
 
 // 组合搜索词
 const searchKeyword = ref('')
+
+// 列表与分页状态及检索
+const {
+  loading,
+  list: orderList,
+  total,
+  queryParams,
+  load: fetchOrders,
+  handleSearch,
+  handleReset: resetOrderFilters,
+  handleSizeChange,
+  handleCurrentChange
+} = usePageList<Omit<GiftOrderQuery, 'page' | 'size'>, StudentGiftVO>({
+  initialFilters: {
+    orderNo: '',
+    pickupCode: '',
+    studentName: '',
+    status: undefined
+  },
+  fetcher: (params) => {
+    const kw = searchKeyword.value.trim()
+    let pickupCode: string | undefined = undefined
+    let orderNo: string | undefined = undefined
+    let studentName: string | undefined = undefined
+
+    if (kw) {
+      if (kw.toUpperCase().startsWith('PK') || /^[A-Za-z0-9]{6,8}$/.test(kw)) {
+        pickupCode = kw
+      } else if (kw.toUpperCase().startsWith('ORD')) {
+        orderNo = kw
+      } else {
+        studentName = kw
+      }
+    }
+
+    return getGiftOrderList({
+      ...params,
+      pickupCode,
+      orderNo,
+      studentName
+    })
+  }
+})
+
+const handleReset = () => {
+  searchKeyword.value = ''
+  resetOrderFilters()
+}
 
 // 统计数据
 const metrics = computed(() => {
@@ -66,70 +103,7 @@ const cancelReason = ref('与学生沟通一致取消')
 const refundPointsChecked = ref(true)
 const cancelLoading = ref(false)
 
-const fetchOrders = async () => {
-  loading.value = true
-  try {
-    const kw = searchKeyword.value.trim()
-    if (kw) {
-      if (kw.toUpperCase().startsWith('PK') || /^[A-Za-z0-9]{6,8}$/.test(kw)) {
-        queryParams.pickupCode = kw
-        queryParams.orderNo = undefined
-        queryParams.studentName = undefined
-      } else if (kw.toUpperCase().startsWith('ORD')) {
-        queryParams.orderNo = kw
-        queryParams.pickupCode = undefined
-        queryParams.studentName = undefined
-      } else {
-        queryParams.studentName = kw
-        queryParams.orderNo = undefined
-        queryParams.pickupCode = undefined
-      }
-    } else {
-      queryParams.orderNo = undefined
-      queryParams.pickupCode = undefined
-      queryParams.studentName = undefined
-    }
 
-    const res: any = await getGiftOrderList(queryParams)
-    if (res && res.records) {
-      orderList.value = res.records
-      total.value = res.total || 0
-    } else if (Array.isArray(res)) {
-      orderList.value = res
-      total.value = res.length
-    } else {
-      orderList.value = []
-      total.value = 0
-    }
-  } catch (err: any) {
-    ElMessage.error(err.message || '获取订单列表失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleSearch = () => {
-  queryParams.page = 1
-  fetchOrders()
-}
-
-const handleReset = () => {
-  searchKeyword.value = ''
-  queryParams.status = undefined
-  queryParams.page = 1
-  fetchOrders()
-}
-
-const handleSizeChange = (val: number) => {
-  queryParams.size = val
-  queryParams.page = 1
-  fetchOrders()
-}
-
-const handleCurrentChange = (val: number) => {
-  queryParams.page = val
-  fetchOrders()
-}
 
 // 快速核销
 const openVerifyDialog = (pickupCode?: string) => {
@@ -225,9 +199,6 @@ const handleConfirmCancel = async () => {
   }
 }
 
-onMounted(() => {
-  fetchOrders()
-})
 </script>
 
 <template>

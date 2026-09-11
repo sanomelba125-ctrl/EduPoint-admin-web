@@ -27,21 +27,28 @@ import {
   type StudentQuery
 } from '@/api/student'
 
-// 列表与分页状态
-const loading = ref(false)
-const studentList = ref<StudentVO[]>([])
-const total = ref(0)
+import { usePageList } from '@/hooks/usePageList'
+
 const classList = ref<string[]>([])
 const statusLoadingId = ref<number | null>(null)
 
-// 检索过滤参数
-const queryParams = reactive<StudentQuery>({
-  page: 1,
-  size: 10,
-  keyword: '',
-  className: undefined,
-  college: '',
-  status: undefined
+// 列表与分页状态及检索
+const {
+  loading,
+  list: studentList,
+  total,
+  queryParams,
+  load: fetchStudentList,
+  handleSearch,
+  handleReset
+} = usePageList<Omit<StudentQuery, 'page' | 'size'>, StudentVO>({
+  initialFilters: {
+    keyword: '',
+    className: undefined,
+    college: '',
+    status: undefined
+  },
+  fetcher: (params) => getStudentList(params)
 })
 
 // 表单弹窗状态
@@ -89,36 +96,6 @@ const fetchClasses = async () => {
   } catch (error) {
     console.error('获取班级列表失败:', error)
   }
-}
-
-// 加载学生档案列表
-const fetchStudentList = async () => {
-  loading.value = true
-  try {
-    const res = await getStudentList(queryParams)
-    studentList.value = res.records || []
-    total.value = res.total || 0
-  } catch (error) {
-    console.error('获取学生列表失败:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 搜索
-const handleSearch = () => {
-  queryParams.page = 1
-  fetchStudentList()
-}
-
-// 重置
-const handleReset = () => {
-  queryParams.page = 1
-  queryParams.keyword = ''
-  queryParams.className = undefined
-  queryParams.college = ''
-  queryParams.status = undefined
-  fetchStudentList()
 }
 
 // 状态快速切换 (正常/冻结)
@@ -256,7 +233,6 @@ const handleDelete = (row: StudentVO) => {
 }
 
 onMounted(() => {
-  fetchStudentList()
   fetchClasses()
 })
 </script>

@@ -16,15 +16,25 @@ import {
   type GiftQuery
 } from '@/api/gift'
 
-const loading = ref(false)
-const giftList = ref<GiftVO[]>([])
-const total = ref(0)
+import { usePageList } from '@/hooks/usePageList'
 
-const queryParams = reactive<GiftQuery>({
-  page: 1,
-  size: 10,
-  name: '',
-  status: undefined
+// 列表与分页状态及检索
+const {
+  loading,
+  list: giftList,
+  total,
+  queryParams,
+  load: fetchGifts,
+  handleSearch,
+  handleReset,
+  handleSizeChange,
+  handleCurrentChange
+} = usePageList<Omit<GiftQuery, 'page' | 'size'>, GiftVO>({
+  initialFilters: {
+    name: '',
+    status: undefined
+  },
+  fetcher: (params) => getGiftList(params)
 })
 
 // 弹窗状态
@@ -50,50 +60,7 @@ const formRules = reactive<FormRules>({
   stock: [{ required: true, message: '请输入初始库存', trigger: 'blur' }]
 })
 
-const fetchGifts = async () => {
-  loading.value = true
-  try {
-    const res: any = await getGiftList(queryParams)
-    // res 可能是 PageResult { records, total } 或直接数组
-    if (res && res.records) {
-      giftList.value = res.records
-      total.value = res.total || 0
-    } else if (Array.isArray(res)) {
-      giftList.value = res
-      total.value = res.length
-    } else {
-      giftList.value = []
-      total.value = 0
-    }
-  } catch (err: any) {
-    ElMessage.error(err.message || '获取礼品列表失败')
-  } finally {
-    loading.value = false
-  }
-}
 
-const handleSearch = () => {
-  queryParams.page = 1
-  fetchGifts()
-}
-
-const handleReset = () => {
-  queryParams.name = ''
-  queryParams.status = undefined
-  queryParams.page = 1
-  fetchGifts()
-}
-
-const handleSizeChange = (val: number) => {
-  queryParams.size = val
-  queryParams.page = 1
-  fetchGifts()
-}
-
-const handleCurrentChange = (val: number) => {
-  queryParams.page = val
-  fetchGifts()
-}
 
 const openCreateDialog = () => {
   isEdit.value = false
@@ -212,9 +179,6 @@ const handleDelete = async (row: GiftVO) => {
   }
 }
 
-onMounted(() => {
-  fetchGifts()
-})
 </script>
 
 <template>
