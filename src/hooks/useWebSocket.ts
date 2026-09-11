@@ -5,6 +5,16 @@ const ws = ref<WebSocket | null>(null)
 const isConnected = ref(false)
 let reconnectTimer: any = null
 
+type MessageListener = (data: any) => void
+const messageListeners = new Set<MessageListener>()
+
+export function onWsMessage(listener: MessageListener) {
+  messageListeners.add(listener)
+  return () => {
+    messageListeners.delete(listener)
+  }
+}
+
 export function useWebSocket() {
   // 建立长连接
   const connect = (userType: 'admin' | 'student', userId: string | number) => {
@@ -49,6 +59,15 @@ export function useWebSocket() {
           position: 'top-right',
           duration: 6000
         })
+
+        // 通知所有订阅监听器
+        messageListeners.forEach((listener) => {
+          try {
+            listener(data)
+          } catch (e) {
+            console.error('[WebSocket] 监听回调执行异常:', e)
+          }
+        })
       } catch {
         ElNotification({
           title: '🔔 实时系统通知',
@@ -56,6 +75,14 @@ export function useWebSocket() {
           type: 'info',
           position: 'top-right',
           duration: 5000
+        })
+
+        messageListeners.forEach((listener) => {
+          try {
+            listener({ text: event.data })
+          } catch (e) {
+            console.error('[WebSocket] 监听回调执行异常:', e)
+          }
         })
       }
     }
