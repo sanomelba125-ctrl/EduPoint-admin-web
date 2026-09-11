@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Search,
@@ -11,7 +11,6 @@ import {
   Timer,
   Close,
   Location,
-  InfoFilled,
   View
 } from '@element-plus/icons-vue'
 import {
@@ -56,7 +55,7 @@ const {
       studentName: params.studentName?.trim() || undefined,
       studentNo: params.studentNo?.trim() || undefined,
       activityTitle: params.activityTitle?.trim() || undefined,
-      status: params.status !== undefined && params.status !== ('' as any) ? Number(params.status) : undefined
+      status: params.status !== undefined && params.status !== '' ? Number(params.status) : undefined
     })
   }
 })
@@ -108,7 +107,7 @@ const handleExport = async () => {
         studentName: queryParams.studentName?.trim() || undefined,
         studentNo: queryParams.studentNo?.trim() || undefined,
         activityTitle: queryParams.activityTitle?.trim() || undefined,
-        status: queryParams.status !== undefined && queryParams.status !== ('' as any) ? String(queryParams.status) : undefined
+        status: queryParams.status !== undefined && queryParams.status !== '' ? String(queryParams.status) : undefined
       },
       '学生活动打卡记录.xlsx'
     )

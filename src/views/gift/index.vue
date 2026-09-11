@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Search, Refresh, Edit, Delete, SwitchButton, Present } from '@element-plus/icons-vue'
@@ -190,8 +190,8 @@ const handleDelete = async (row: GiftVO) => {
             v-model="queryParams.name"
             placeholder="搜索礼品名称..."
             clearable
-            @keyup.enter="handleSearch"
             style="width: 220px;"
+            @keyup.enter="handleSearch"
           />
         </el-form-item>
         <el-form-item label="货架状态">
@@ -248,7 +248,7 @@ const handleDelete = async (row: GiftVO) => {
               </div>
               <div class="gift-info">
                 <div class="gift-title">{{ row.name }}</div>
-                <div class="gift-desc" v-if="row.description">{{ row.description }}</div>
+                <div v-if="row.description" class="gift-desc">{{ row.description }}</div>
               </div>
             </div>
           </template>

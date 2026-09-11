@@ -137,7 +137,7 @@ export interface ActivityRecordQuery extends PageQuery {
   studentName?: string
   studentNo?: string
   activityTitle?: string
-  status?: number
+  status?: number | string
 }
 
 /**

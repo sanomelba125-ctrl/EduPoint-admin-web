@@ -89,9 +89,9 @@ const handleUpload = async (options: any) => {
     >
       <div
         v-if="model"
+        v-loading="uploading"
         class="preview-box"
         :style="boxSizeStyle"
-        v-loading="uploading"
       >
         <img :src="model" class="preview-img" alt="预览图" />
         <div class="hover-mask">
@@ -101,9 +101,9 @@ const handleUpload = async (options: any) => {
       </div>
       <div
         v-else
+        v-loading="uploading"
         class="placeholder-box"
         :style="boxSizeStyle"
-        v-loading="uploading"
       >
         <el-icon class="uploader-icon" :size="20"><Plus /></el-icon>
         <span class="uploader-text">上传至七牛云</span>

@@ -136,7 +136,7 @@ const handleMarkAllRead = async () => {
     ElMessage.success('已全部标记为已读')
     unreadCount.value = 0
     fetchNotices()
-  } catch (err) {
+  } catch {
     ElMessage.error('操作失败')
   }
 }
@@ -154,7 +154,7 @@ const handleDeleteNotice = async (item: SysNoticeVO, e: Event) => {
     if (noticeTotal.value > 0) {
       noticeTotal.value--
     }
-  } catch (err) {
+  } catch {
     ElMessage.error('删除通知失败')
   }
 }
@@ -274,8 +274,8 @@ const handleLogout = () => {
               circle
               :icon="Bell"
               class="notice-bell-btn"
-              @click="openNoticeDrawer"
               title="系统消息通知"
+              @click="openNoticeDrawer"
             />
           </el-badge>
 

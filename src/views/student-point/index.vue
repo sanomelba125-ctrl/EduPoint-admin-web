@@ -4,7 +4,6 @@ import { ElMessage } from 'element-plus'
 import {
   Search,
   Refresh,
-  Plus,
   Coin,
   ShoppingCart,
   RefreshRight,
@@ -94,7 +93,7 @@ const isNegativeWarning = computed(() => {
 
 const fetchMetrics = async () => {
   try {
-    const res: any = await getLedgerMetrics()
+    const res = await getLedgerMetrics()
     if (res) {
       metrics.value = res
     }
@@ -133,7 +132,7 @@ const openAdjustModal = async () => {
   studentSearchLoading.value = true
   try {
     studentOptions.value = await searchStudentForAdjust('')
-  } catch (err) {
+  } catch {
     studentOptions.value = []
   } finally {
     studentSearchLoading.value = false
@@ -244,8 +243,8 @@ onMounted(() => {
             v-model="queryParams.keyword"
             placeholder="学号 / 姓名 / 流水号 / 备注..."
             clearable
-            @keyup.enter="handleSearch"
             style="width: 280px;"
+            @keyup.enter="handleSearch"
           />
         </el-form-item>
 
@@ -548,7 +547,7 @@ onMounted(() => {
 }
 
 .filter-card, .table-card {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .filter-form {
