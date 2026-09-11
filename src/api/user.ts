@@ -1,5 +1,5 @@
 import { http } from '@/utils/request'
-import type { PageResult } from './types'
+import type { PageQuery, PageResult } from './types'
 
 export interface SysUserVO {
   id: number
@@ -13,10 +13,7 @@ export interface SysUserVO {
   updateTime?: string
 }
 
-export interface SysUserQuery {
-  page?: number
-  size?: number
-  keyword?: string
+export interface SysUserQuery extends PageQuery {
   username?: string
   nickname?: string
   role?: string
