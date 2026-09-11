@@ -48,7 +48,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'student-activity',
         name: 'StudentActivity',
         component: () => import('@/views/student-activity/index.vue'),
-        meta: { title: '学生活动打卡', icon: 'Checked' }
+        meta: { title: '学生活动管理', icon: 'Checked' }
       },
       {
         path: 'student-point',
@@ -67,6 +67,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'StudentGift',
         component: () => import('@/views/student-gift/index.vue'),
         meta: { title: '礼物兑换审核', icon: 'ShoppingCart' }
+      },
+      {
+        path: 'certificate',
+        name: 'Certificate',
+        component: () => import('@/views/certificate/index.vue'),
+        meta: { title: '电子证书防伪', icon: 'Medal' }
       }
     ]
   },

@@ -88,6 +88,10 @@ export interface ActivityRecordVO {
   activityTitle?: string
   signupTime?: string
   checkinTime?: string
+  checkinLatitude?: number
+  checkinLongitude?: number
+  checkinDistance?: number
+  qrNonceUsed?: string
   pointsAwarded?: number
   status?: number
   remark?: string

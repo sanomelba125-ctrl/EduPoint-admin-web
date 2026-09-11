@@ -11,6 +11,7 @@ import {
   Coin,
   Present,
   ShoppingCart,
+  Medal,
   Fold,
   Expand,
   SwitchButton
@@ -69,7 +70,7 @@ const handleLogout = () => {
 
         <el-menu-item index="/student-activity">
           <el-icon><Checked /></el-icon>
-          <template #title>学生活动打卡</template>
+          <template #title>学生活动管理</template>
         </el-menu-item>
 
         <el-menu-item index="/student-point">
@@ -85,6 +86,11 @@ const handleLogout = () => {
         <el-menu-item index="/student-gift">
           <el-icon><ShoppingCart /></el-icon>
           <template #title>礼物兑换审核</template>
+        </el-menu-item>
+
+        <el-menu-item index="/certificate">
+          <el-icon><Medal /></el-icon>
+          <template #title>电子证书防伪</template>
         </el-menu-item>
       </el-menu>
     </el-aside>
