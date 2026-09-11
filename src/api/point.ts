@@ -1,5 +1,6 @@
 import { http } from '@/utils/request'
 import type { PageQuery, PageResult } from './types'
+import { getStudentList, type StudentVO } from './student'
 
 export interface StudentPointRecordVO {
   id: number
@@ -60,10 +61,11 @@ export function getLedgerMetrics(): Promise<LedgerMetricsVO> {
 }
 
 /**
- * 获取学生榜单/学生基本数据用于调账下拉 (GET /api/student/score/rank)
+ * 调账目标学生搜索：复用学生档案检索接口，支持学号/姓名模糊搜索 + 动态分页（彻底摆脱榜单前100名限制）
  */
-export function getLeaderboard(params?: any): Promise<any> {
-  return http.get('/student/score/rank', params)
+export async function searchStudentForAdjust(keyword: string = ''): Promise<StudentVO[]> {
+  const res = await getStudentList({ page: 1, size: 20, keyword: keyword.trim() || undefined })
+  return res?.records ?? []
 }
 
 /**
@@ -72,3 +74,4 @@ export function getLeaderboard(params?: any): Promise<any> {
 export function adjustStudentPoints(data: PointAdjustDTO): Promise<void> {
   return http.post<void>('/student/score/adjust', data)
 }
+

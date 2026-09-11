@@ -14,13 +14,14 @@ import {
 import {
   getAdminPointRecords,
   getLedgerMetrics,
-  getLeaderboard,
+  searchStudentForAdjust,
   adjustStudentPoints,
   type StudentPointRecordVO,
   type AdminPointRecordQuery,
   type LedgerMetricsVO,
   type PointAdjustDTO
 } from '@/api/point'
+import type { StudentVO } from '@/api/student'
 
 import { usePageList } from '@/hooks/usePageList'
 
@@ -54,7 +55,9 @@ const metrics = ref<LedgerMetricsVO>({
 // 调账弹窗状态
 const adjustDialogVisible = ref(false)
 const submitLoading = ref(false)
-const studentOptions = ref<any[]>([])
+const studentOptions = ref<StudentVO[]>([])
+const studentSearchLoading = ref(false)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const adjustForm = reactive({
   studentId: undefined as number | undefined,
@@ -67,12 +70,12 @@ const adjustForm = reactive({
 // 当前选中的目标学生
 const selectedStudent = computed(() => {
   if (!adjustForm.studentId) return null
-  return studentOptions.value.find(s => s.studentId === adjustForm.studentId || s.id === adjustForm.studentId) || null
+  return studentOptions.value.find(s => s.id === adjustForm.studentId) || null
 })
 
 // 调账试算
 const prevBalance = computed(() => {
-  return selectedStudent.value?.currentPoints || 0
+  return selectedStudent.value?.currentPoints ?? 0
 })
 
 const changeValue = computed(() => {
@@ -100,26 +103,41 @@ const fetchMetrics = async () => {
   }
 }
 
-const loadStudentOptions = async () => {
-  try {
-    const res: any = await getLeaderboard({ page: 1, size: 100 })
-    const list = res?.records || (Array.isArray(res) ? res : [])
-    studentOptions.value = list
-  } catch (err) {
-    console.warn('获取候选学生失败', err)
-  }
+/**
+ * 远程防抖检索候选学生，全校学生均可直接按学号或姓名精确/模糊检索
+ */
+const handleStudentSearch = (keyword: string) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(async () => {
+    studentSearchLoading.value = true
+    try {
+      studentOptions.value = await searchStudentForAdjust(keyword)
+    } catch (error) {
+      console.warn('搜索学生失败:', error)
+      studentOptions.value = []
+    } finally {
+      studentSearchLoading.value = false
+    }
+  }, 300)
 }
 
-
-
-const openAdjustModal = () => {
+const openAdjustModal = async () => {
   adjustForm.studentId = undefined
   adjustForm.direction = 'PLUS'
   adjustForm.amount = 50
   adjustForm.approvalNo = 'OA-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-01'
   adjustForm.reason = ''
   adjustDialogVisible.value = true
-  loadStudentOptions()
+
+  // 弹窗初次唤起时，预加载前 20 位学生供即点即选
+  studentSearchLoading.value = true
+  try {
+    studentOptions.value = await searchStudentForAdjust('')
+  } catch (err) {
+    studentOptions.value = []
+  } finally {
+    studentSearchLoading.value = false
+  }
 }
 
 const handleSubmitAdjust = async () => {
@@ -359,15 +377,20 @@ onMounted(() => {
         <el-form-item label="目标学生" required>
           <el-select
             v-model="adjustForm.studentId"
-            placeholder="请搜索或选择学生..."
             filterable
+            remote
+            clearable
+            reserve-keyword
+            :remote-method="handleStudentSearch"
+            :loading="studentSearchLoading"
+            placeholder="输入学号或姓名搜索学生..."
             style="width: 100%;"
           >
             <el-option
               v-for="s in studentOptions"
-              :key="s.studentId || s.id"
-              :label="`${s.name} (${s.studentNo}) - 当前可用: ${s.currentPoints} pts`"
-              :value="s.studentId || s.id"
+              :key="s.id"
+              :label="`${s.name} (${s.studentNo}) · 当前可用 ${s.currentPoints ?? 0} pts`"
+              :value="s.id"
             />
           </el-select>
         </el-form-item>
