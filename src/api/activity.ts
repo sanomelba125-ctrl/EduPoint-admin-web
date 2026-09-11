@@ -110,3 +110,41 @@ export function archiveActivity(id: number): Promise<void> {
 export function getActivityQrCode(id: number): Promise<QrCodeVO> {
   return http.get<QrCodeVO>(`/activity/${id}/qrcode`)
 }
+
+// ────────── 学生活动打卡/参与记录相关 ──────────
+
+export interface StudentActivityRecordVO {
+  id: number
+  studentId: number
+  studentNo: string
+  studentName: string
+  activityId: number
+  activityTitle: string
+  signupTime?: string
+  checkinTime?: string
+  checkinLatitude?: number
+  checkinLongitude?: number
+  checkinDistance?: number
+  qrNonceUsed?: string
+  pointsAwarded: number
+  status: number // 1-已报名(待打卡), 2-已签到出勤(已发分), 3-已失效/已取消
+  remark?: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface ActivityRecordQuery extends PageQuery {
+  studentName?: string
+  studentNo?: string
+  activityTitle?: string
+  status?: number
+}
+
+/**
+ * 管理端全量分页多条件查询学生活动打卡/报名记录
+ * GET /api/activity/record/list
+ */
+export function getActivityRecordList(params?: ActivityRecordQuery): Promise<PageResult<StudentActivityRecordVO>> {
+  return http.get<PageResult<StudentActivityRecordVO>>('/activity/record/list', params)
+}
+

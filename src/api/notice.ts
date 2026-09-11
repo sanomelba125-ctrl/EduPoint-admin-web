@@ -25,7 +25,7 @@ export interface NoticeQuery extends PageQuery {
  * GET /api/notice/my-list
  */
 export function getMyNoticesApi(params?: NoticeQuery) {
-  return http.get<PageResult<SysNoticeVO>>('/notice/my-list', { params })
+  return http.get<PageResult<SysNoticeVO>>('/notice/my-list', params)
 }
 
 /**
