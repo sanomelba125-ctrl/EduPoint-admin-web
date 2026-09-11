@@ -22,15 +22,25 @@ import {
   type PointAdjustDTO
 } from '@/api/point'
 
-const loading = ref(false)
-const recordList = ref<StudentPointRecordVO[]>([])
-const total = ref(0)
+import { usePageList } from '@/hooks/usePageList'
 
-const queryParams = reactive<AdminPointRecordQuery>({
-  page: 1,
-  size: 10,
-  keyword: '',
-  type: undefined
+// 列表与分页状态及检索
+const {
+  loading,
+  list: recordList,
+  total,
+  queryParams,
+  load: fetchRecords,
+  handleSearch,
+  handleReset,
+  handleSizeChange,
+  handleCurrentChange
+} = usePageList<Omit<AdminPointRecordQuery, 'page' | 'size'>, StudentPointRecordVO>({
+  initialFilters: {
+    keyword: '',
+    type: undefined
+  },
+  fetcher: (params) => getAdminPointRecords(params)
 })
 
 // 大盘指标
@@ -77,26 +87,7 @@ const isNegativeWarning = computed(() => {
   return afterBalance.value < 0
 })
 
-const fetchRecords = async () => {
-  loading.value = true
-  try {
-    const res: any = await getAdminPointRecords(queryParams)
-    if (res && res.records) {
-      recordList.value = res.records
-      total.value = res.total || 0
-    } else if (Array.isArray(res)) {
-      recordList.value = res
-      total.value = res.length
-    } else {
-      recordList.value = []
-      total.value = 0
-    }
-  } catch (err: any) {
-    ElMessage.error(err.message || '获取对账流水失败')
-  } finally {
-    loading.value = false
-  }
-}
+
 
 const fetchMetrics = async () => {
   try {
@@ -119,28 +110,7 @@ const loadStudentOptions = async () => {
   }
 }
 
-const handleSearch = () => {
-  queryParams.page = 1
-  fetchRecords()
-}
 
-const handleReset = () => {
-  queryParams.keyword = ''
-  queryParams.type = undefined
-  queryParams.page = 1
-  fetchRecords()
-}
-
-const handleSizeChange = (val: number) => {
-  queryParams.size = val
-  queryParams.page = 1
-  fetchRecords()
-}
-
-const handleCurrentChange = (val: number) => {
-  queryParams.page = val
-  fetchRecords()
-}
 
 const openAdjustModal = () => {
   adjustForm.studentId = undefined
@@ -191,7 +161,6 @@ const handleSubmitAdjust = async () => {
 }
 
 onMounted(() => {
-  fetchRecords()
   fetchMetrics()
 })
 </script>

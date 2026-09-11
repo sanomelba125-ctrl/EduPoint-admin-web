@@ -5,13 +5,13 @@ import {
   Search,
   RefreshRight,
   Refresh,
+  Download,
   Checked,
   Calendar,
   Timer,
   Close,
   Location,
-  User,
-  Ticket,
+  InfoFilled,
   View
 } from '@element-plus/icons-vue'
 import {
@@ -20,210 +20,169 @@ import {
   type ActivityRecordQuery
 } from '@/api/activity'
 
-// 列表与加载状态
-const loading = ref(false)
-const recordList = ref<StudentActivityRecordVO[]>([])
-const total = ref(0)
-
-// 详情弹窗与抽屉
+// 详情弹窗
 const detailDialogVisible = ref(false)
 const currentRecord = ref<StudentActivityRecordVO | null>(null)
 
-// 检索过滤条件
-const queryParams = reactive<ActivityRecordQuery>({
-  page: 1,
-  size: 10,
-  studentName: '',
-  studentNo: '',
-  activityTitle: '',
-  status: ''
+import { usePageList } from '@/hooks/usePageList'
+
+// 列表与分页状态及检索
+const {
+  loading,
+  list: recordList,
+  total,
+  queryParams,
+  load: fetchRecords,
+  handleSearch,
+  handleReset,
+  handlePageChange,
+  handleSizeChange
+} = usePageList<Omit<ActivityRecordQuery, 'page' | 'size'>, StudentActivityRecordVO>({
+  initialFilters: {
+    studentName: '',
+    studentNo: '',
+    activityTitle: '',
+    status: undefined
+  },
+  fetcher: (params) => {
+    return getActivityRecordList({
+      ...params,
+      studentName: params.studentName?.trim() || undefined,
+      studentNo: params.studentNo?.trim() || undefined,
+      activityTitle: params.activityTitle?.trim() || undefined,
+      status: params.status !== undefined && params.status !== ('' as any) ? Number(params.status) : undefined
+    })
+  }
 })
 
-// 状态筛选项
-const statusTabs = [
-  { label: '全部记录', value: '' },
-  { label: '已报名/待打卡', value: 1 },
-  { label: '已出勤/已发分', value: 2 },
-  { label: '已取消/已失效', value: 3 }
-]
-
-// 统计指标计算
+// 统计指标计算（基于当前加载页及统计概况）
 const stats = computed(() => {
-  const list = recordList.value
+  let completed = 0
+  let pending = 0
+  let cancelled = 0
+  let pointsTotal = 0
+
+  recordList.value.forEach((r) => {
+    if (r.status === 2) {
+      completed++
+      pointsTotal += r.pointsAwarded || 0
+    } else if (r.status === 1) {
+      pending++
+    } else if (r.status === 3) {
+      cancelled++
+    }
+  })
+
   return {
-    total: total.value,
-    enrolled: list.filter(r => r.status === 1).length,
-    completed: list.filter(r => r.status === 2).length,
-    cancelled: list.filter(r => r.status === 3).length
+    totalRecords: total.value,
+    completedCount: completed,
+    pendingCount: pending,
+    cancelledCount: cancelled,
+    pointsDistributed: pointsTotal
   }
 })
 
-// 格式化时间
-function formatTime(val?: string) {
-  if (!val) return '-'
-  return val.replace('T', ' ').substring(0, 19)
-}
 
-// 状态文本与样式
-function statusLabel(status?: number) {
-  switch (status) {
-    case 1:
-      return '已报名·待打卡'
-    case 2:
-      return '已出勤·已发分'
-    case 3:
-      return '已取消/已失效'
-    default:
-      return '未知状态'
-  }
-}
 
-function statusTagType(status?: number): '' | 'success' | 'warning' | 'info' | 'danger' {
-  switch (status) {
-    case 1:
-      return 'warning'
-    case 2:
-      return 'success'
-    case 3:
-      return 'info'
-    default:
-      return 'info'
-  }
-}
-
-// 加载数据
-async function fetchRecords() {
-  loading.value = true
-  try {
-    const params: ActivityRecordQuery = {
-      page: queryParams.page,
-      size: queryParams.size,
-      studentName: queryParams.studentName?.trim() || undefined,
-      studentNo: queryParams.studentNo?.trim() || undefined,
-      activityTitle: queryParams.activityTitle?.trim() || undefined,
-      status: queryParams.status !== '' ? Number(queryParams.status) : undefined
-    }
-    const res = await getActivityRecordList(params)
-    recordList.value = res.records || []
-    total.value = res.total || 0
-  } catch (err: any) {
-    ElMessage.error(err.message || '获取活动记录失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 快捷标签切换
-function handleTabChange(val: string | number) {
-  queryParams.status = val
-  queryParams.page = 1
-  fetchRecords()
-}
-
-// 查询与重置
-function handleSearch() {
-  queryParams.page = 1
-  fetchRecords()
-}
-
-function handleReset() {
-  queryParams.studentName = ''
-  queryParams.studentNo = ''
-  queryParams.activityTitle = ''
-  queryParams.status = ''
-  queryParams.page = 1
-  fetchRecords()
-}
-
-// 查看详情
-function openDetail(row: StudentActivityRecordVO) {
+// 打开记录详情
+const openDetail = (row: StudentActivityRecordVO) => {
   currentRecord.value = row
   detailDialogVisible.value = true
 }
 
-function handleSizeChange(size: number) {
-  queryParams.size = size
-  queryParams.page = 1
-  fetchRecords()
+// 导出 Excel 报表
+const handleExport = () => {
+  const token = localStorage.getItem('admin_token') || ''
+  const params = new URLSearchParams()
+  if (queryParams.studentName?.trim()) params.append('studentName', queryParams.studentName.trim())
+  if (queryParams.studentNo?.trim()) params.append('studentNo', queryParams.studentNo.trim())
+  if (queryParams.activityTitle?.trim()) params.append('activityTitle', queryParams.activityTitle.trim())
+  if (queryParams.status !== undefined && queryParams.status !== ('' as any)) {
+    params.append('status', String(queryParams.status))
+  }
+  if (token) {
+    params.append('satoken', token)
+  }
+  const exportUrl = `/api/admin/export/activity-records?${params.toString()}`
+  window.open(exportUrl, '_blank')
 }
 
-function handlePageChange(page: number) {
-  queryParams.page = page
-  fetchRecords()
+// 格式化时间
+const formatTime = (timeStr?: string) => {
+  if (!timeStr) return '-'
+  return timeStr.replace('T', ' ').substring(0, 19)
 }
 
-onMounted(() => {
-  fetchRecords()
-})
 </script>
 
 <template>
-  <div class="student-activity-container">
-    <!-- 顶部统计指标卡 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon-wrap icon-blue">
-          <el-icon :size="24"><Calendar /></el-icon>
-        </div>
-        <div class="stat-content">
-          <span class="stat-label">总参与记录</span>
-          <span class="stat-value text-blue">{{ stats.total }} <small>条</small></span>
-        </div>
-      </div>
+  <div class="activity-records-page">
+    <!-- 顶部 KPI 统计卡片 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :xs="12" :sm="6" :md="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper bg-blue">
+              <el-icon :size="24"><Calendar /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">全校报名参与人次</div>
+              <div class="stat-value text-blue">{{ stats.totalRecords }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
 
-      <div class="stat-card">
-        <div class="stat-icon-wrap icon-green">
-          <el-icon :size="24"><Checked /></el-icon>
-        </div>
-        <div class="stat-content">
-          <span class="stat-label">已出勤·已发分</span>
-          <span class="stat-value text-green">{{ stats.completed }} <small>人次</small></span>
-        </div>
-      </div>
+      <el-col :xs="12" :sm="6" :md="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper bg-green">
+              <el-icon :size="24"><Checked /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">已出勤打卡人数</div>
+              <div class="stat-value text-green">{{ stats.completedCount }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
 
-      <div class="stat-card">
-        <div class="stat-icon-wrap icon-orange">
-          <el-icon :size="24"><Timer /></el-icon>
-        </div>
-        <div class="stat-content">
-          <span class="stat-label">已报名·待打卡</span>
-          <span class="stat-value text-orange">{{ stats.enrolled }} <small>人次</small></span>
-        </div>
-      </div>
+      <el-col :xs="12" :sm="6" :md="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper bg-orange">
+              <el-icon :size="24"><Timer /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">待打卡履约人次</div>
+              <div class="stat-value text-orange">{{ stats.pendingCount }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
 
-      <div class="stat-card">
-        <div class="stat-icon-wrap icon-gray">
-          <el-icon :size="24"><Close /></el-icon>
-        </div>
-        <div class="stat-content">
-          <span class="stat-label">已取消 / 失效</span>
-          <span class="stat-value text-muted">{{ stats.cancelled }} <small>条</small></span>
-        </div>
-      </div>
-    </div>
+      <el-col :xs="12" :sm="6" :md="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon-wrapper bg-purple">
+              <el-icon :size="24"><Close /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">取消 / 未履约失效</div>
+              <div class="stat-value text-purple">{{ stats.cancelledCount }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-    <!-- 筛选面板 -->
+    <!-- 筛选工具栏 -->
     <el-card shadow="never" class="filter-card">
-      <div class="filter-header">
-        <div class="filter-tabs">
-          <span
-            v-for="tab in statusTabs"
-            :key="tab.value"
-            class="filter-tab-item"
-            :class="{ active: queryParams.status === tab.value }"
-            @click="handleTabChange(tab.value)"
-          >
-            {{ tab.label }}
-          </span>
-        </div>
-        <el-button link type="primary" :icon="Refresh" @click="fetchRecords">刷新数据</el-button>
-      </div>
-
-      <el-form :model="queryParams" inline class="filter-form">
-        <el-form-item label="学号">
+      <el-form :inline="true" :model="queryParams" class="filter-form">
+        <el-form-item label="学生学号">
           <el-input
             v-model="queryParams.studentNo"
-            placeholder="按学号检索"
+            placeholder="精确检索学号"
             clearable
             style="width: 150px"
             @keyup.enter="handleSearch"
@@ -233,42 +192,43 @@ onMounted(() => {
         <el-form-item label="学生姓名">
           <el-input
             v-model="queryParams.studentName"
-            placeholder="按姓名检索"
+            placeholder="输入姓名"
             clearable
             style="width: 140px"
             @keyup.enter="handleSearch"
           />
         </el-form-item>
 
-        <el-form-item label="活动名称">
+        <el-form-item label="参与活动">
           <el-input
             v-model="queryParams.activityTitle"
-            placeholder="活动标题关键字"
+            placeholder="活动标题模糊匹配"
             clearable
             style="width: 180px"
             @keyup.enter="handleSearch"
           />
         </el-form-item>
 
-        <el-form-item label="参与状态">
+        <el-form-item label="打卡状态">
           <el-select
             v-model="queryParams.status"
             placeholder="全部状态"
             clearable
-            style="width: 140px"
+            style="width: 150px"
+            @change="handleSearch"
           >
-            <el-option
-              v-for="opt in statusTabs"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
+            <el-option label="全部状态" :value="undefined" />
+            <el-option label="已报名·待打卡" :value="1" />
+            <el-option label="已出勤·已发分" :value="2" />
+            <el-option label="已取消/失效" :value="3" />
           </el-select>
         </el-form-item>
 
         <el-form-item class="actions-item">
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
+          <el-button :icon="Refresh" @click="fetchRecords">刷新</el-button>
+          <el-button type="success" plain :icon="Download" @click="handleExport">导出报表</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -402,188 +362,175 @@ onMounted(() => {
       </div>
     </el-card>
 
-    <!-- 记录详情模态框 -->
+    <!-- 详情抽屉/弹窗 -->
     <el-dialog
       v-model="detailDialogVisible"
-      title="学生活动参与考勤详情"
-      width="540px"
+      title="学生活动打卡参与详细信息"
+      width="640px"
       destroy-on-close
     >
       <div v-if="currentRecord" class="detail-container">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="记录 ID">
-            <code>#{{ currentRecord.id }}</code>
+        <el-descriptions :column="2" border size="default">
+          <el-descriptions-item label="参与记录编号">
+            <span class="mono-code">#{{ currentRecord.id }}</span>
           </el-descriptions-item>
 
-          <el-descriptions-item label="获奖/参与学生">
-            <div class="desc-user-block">
-              <span class="font-bold">{{ currentRecord.studentName || '学生' }}</span>
-              <span class="mono-code" style="margin-left: 8px;">{{ currentRecord.studentNo }}</span>
-            </div>
+          <el-descriptions-item label="参与活动名称" :span="2">
+            <span style="font-weight: 600; color: #303133;">{{ currentRecord.activityTitle }}</span>
+            <span class="text-muted" style="margin-left: 8px;">(ID: {{ currentRecord.activityId }})</span>
           </el-descriptions-item>
 
-          <el-descriptions-item label="活动项目">
-            <span class="font-bold">{{ currentRecord.activityTitle }}</span>
+          <el-descriptions-item label="学生学号">
+            <span class="mono-code">{{ currentRecord.studentNo }}</span>
           </el-descriptions-item>
 
-          <el-descriptions-item label="当前状态">
-            <el-tag :type="statusTagType(currentRecord.status)" size="small">
-              {{ statusLabel(currentRecord.status) }}
+          <el-descriptions-item label="学生姓名">
+            <span style="font-weight: 500;">{{ currentRecord.studentName }}</span>
+          </el-descriptions-item>
+
+          <el-descriptions-item label="当前履约状态">
+            <el-tag
+              :type="currentRecord.status === 2 ? 'success' : currentRecord.status === 1 ? 'warning' : 'info'"
+            >
+              {{ currentRecord.status === 2 ? '已出勤·打卡完成' : currentRecord.status === 1 ? '已报名·待打卡' : '已取消/失效' }}
             </el-tag>
           </el-descriptions-item>
 
-          <el-descriptions-item label="发放学分奖励">
-            <span class="points-awarded-text">{{ currentRecord.pointsAwarded || 0 }} 积分</span>
+          <el-descriptions-item label="获得奖励学分">
+            <span style="color: #e6a23c; font-weight: bold; font-size: 15px;">
+              +{{ currentRecord.pointsAwarded || 0 }} 积分
+            </span>
           </el-descriptions-item>
 
-          <el-descriptions-item label="报名时间">
+          <el-descriptions-item label="报名成功时间">
             {{ formatTime(currentRecord.signupTime) }}
           </el-descriptions-item>
 
-          <el-descriptions-item label="打卡签到时间">
-            <span :class="{ 'text-success': currentRecord.checkinTime }">
-              {{ formatTime(currentRecord.checkinTime) }}
-            </span>
+          <el-descriptions-item label="签到出勤时间">
+            {{ formatTime(currentRecord.checkinTime) }}
           </el-descriptions-item>
 
-          <el-descriptions-item label="打卡核验距离">
+          <el-descriptions-item label="打卡现场距离">
             <span v-if="currentRecord.checkinDistance !== undefined && currentRecord.checkinDistance !== null">
               {{ currentRecord.checkinDistance }} 米
             </span>
-            <span v-else class="text-muted">未记录距离</span>
+            <span v-else>-</span>
           </el-descriptions-item>
 
-          <el-descriptions-item label="动态防作弊 Nonce">
-            <code class="text-muted" style="font-size: 11px;">
-              {{ currentRecord.qrNonceUsed || '非动态二维码打卡' }}
-            </code>
+          <el-descriptions-item label="签到坐标 (经纬度)">
+            <span v-if="currentRecord.checkinLatitude">
+              {{ currentRecord.checkinLatitude }}, {{ currentRecord.checkinLongitude }}
+            </span>
+            <span v-else>-</span>
           </el-descriptions-item>
 
-          <el-descriptions-item v-if="currentRecord.remark" label="审核备注">
-            {{ currentRecord.remark }}
+          <el-descriptions-item label="动态验签 Nonce" :span="2">
+            <span class="mono-code" style="font-size: 12px; color: #606266;">
+              {{ currentRecord.qrNonceUsed || '未扫码' }}
+            </span>
+          </el-descriptions-item>
+
+          <el-descriptions-item label="系统考勤反馈" :span="2">
+            <span>{{ currentRecord.remark || '正常完成考勤签到' }}</span>
           </el-descriptions-item>
         </el-descriptions>
       </div>
 
       <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="detailDialogVisible = false">关闭</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.student-activity-container {
-  padding: 16px;
-  background-color: #f8fafc;
-  min-height: calc(100vh - 84px);
-}
-
-/* 统计卡片区 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.activity-records-page {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  margin-bottom: 16px;
 }
 
-@media (max-width: 992px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* 顶部统计卡片 */
+.stats-row {
+  margin-bottom: 4px;
 }
 
 .stat-card {
-  background: #ffffff;
   border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid #ebeef5;
+  transition: all 0.3s ease;
 }
 
-.stat-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
-
-.icon-blue { background: #eff6ff; color: #2563eb; }
-.icon-green { background: #f0fdf4; color: #16a34a; }
-.icon-orange { background: #fffbeb; color: #d97706; }
-.icon-gray { background: #f1f5f9; color: #64748b; }
 
 .stat-content {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 14px;
 }
 
-.stat-label {
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 2px;
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.bg-blue {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.bg-green {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.bg-orange {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.bg-purple {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+}
+
+.stat-info {
+  overflow: hidden;
+}
+
+.stat-title {
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 4px;
 }
 
 .stat-value {
   font-size: 22px;
   font-weight: 700;
-}
-
-.stat-value small {
-  font-size: 12px;
-  font-weight: normal;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .text-blue { color: #1d4ed8; }
 .text-green { color: #059669; }
 .text-orange { color: #d97706; }
-.text-muted { color: #94a3b8; }
+.text-purple { color: #6d28d9; }
 
-/* 筛选面板 */
+/* 筛选表单 */
 .filter-card {
   border-radius: 8px;
-  margin-bottom: 16px;
-  border: 1px solid #e2e8f0;
-}
-
-.filter-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-tab-item {
-  font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 4px;
-  color: #64748b;
-  cursor: pointer;
-  background: #f1f5f9;
-  transition: all 0.2s;
-}
-
-.filter-tab-item:hover {
-  background: #e2e8f0;
-}
-
-.filter-tab-item.active {
-  background: #2563eb;
-  color: #ffffff;
-  font-weight: 600;
 }
 
 .filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   margin-bottom: -18px;
 }
 
@@ -594,42 +541,46 @@ onMounted(() => {
 /* 表格区域 */
 .table-card {
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
 }
 
 .mono-code {
-  font-family: Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-  color: #2563eb;
-  background-color: #eff6ff;
+  font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  color: #409eff;
+  background-color: #ecf5ff;
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .student-name-text {
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 500;
+  color: #303133;
 }
 
 .activity-title-link {
-  font-weight: 500;
-  color: #1e293b;
+  font-weight: 600;
+  color: #303133;
 }
 
 .points-awarded-text {
-  color: #d97706;
+  color: #e6a23c;
   font-weight: bold;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .time-text {
-  font-size: 12px;
-  color: #475569;
+  font-size: 13px;
+  color: #606266;
 }
 
 .text-success {
-  color: #16a34a;
+  color: #67c23a;
   font-weight: 500;
+}
+
+.text-muted {
+  color: #c0c4cc;
+  font-size: 13px;
 }
 
 .pagination-box {
@@ -638,7 +589,7 @@ onMounted(() => {
   padding-top: 16px;
 }
 
-.font-bold {
-  font-weight: 600;
+.detail-container {
+  padding: 8px 0;
 }
 </style>

@@ -12,12 +12,9 @@ import {
   Lock,
   Iphone,
   School,
-  Reading,
-  Picture,
-  UploadFilled,
-  Check
+  Reading
 } from '@element-plus/icons-vue'
-import { uploadImageApi } from '@/api/common'
+import ImageUploader from '@/components/ImageUploader.vue'
 import {
   getStudentList,
   createStudent,
@@ -30,53 +27,28 @@ import {
   type StudentQuery
 } from '@/api/student'
 
-// 头像上传七牛云状态
-const uploadingAvatar = ref(false)
+import { usePageList } from '@/hooks/usePageList'
 
-const beforeAvatarUpload = (file: File) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-  if (!isImage) {
-    ElMessage.error('只能上传图片格式文件 (JPG/PNG/WEBP)!')
-    return false
-  }
-  if (!isLt5M) {
-    ElMessage.error('上传头像图片不能超过 5MB!')
-    return false
-  }
-  return true
-}
-
-const handleAvatarUpload = async (options: any) => {
-  const { file } = options
-  uploadingAvatar.value = true
-  try {
-    const url = await uploadImageApi(file)
-    formData.avatar = url
-    ElMessage.success('头像已成功上传至七牛云存储！')
-  } catch (err: any) {
-    console.error('上传七牛云异常:', err)
-    ElMessage.error(err.message || '上传七牛云失败，请检查网络或后端配置')
-  } finally {
-    uploadingAvatar.value = false
-  }
-}
-
-// 列表与分页状态
-const loading = ref(false)
-const studentList = ref<StudentVO[]>([])
-const total = ref(0)
 const classList = ref<string[]>([])
 const statusLoadingId = ref<number | null>(null)
 
-// 检索过滤参数
-const queryParams = reactive<StudentQuery>({
-  page: 1,
-  size: 10,
-  keyword: '',
-  className: undefined,
-  college: '',
-  status: undefined
+// 列表与分页状态及检索
+const {
+  loading,
+  list: studentList,
+  total,
+  queryParams,
+  load: fetchStudentList,
+  handleSearch,
+  handleReset
+} = usePageList<Omit<StudentQuery, 'page' | 'size'>, StudentVO>({
+  initialFilters: {
+    keyword: '',
+    className: undefined,
+    college: '',
+    status: undefined
+  },
+  fetcher: (params) => getStudentList(params)
 })
 
 // 表单弹窗状态
@@ -124,36 +96,6 @@ const fetchClasses = async () => {
   } catch (error) {
     console.error('获取班级列表失败:', error)
   }
-}
-
-// 加载学生档案列表
-const fetchStudentList = async () => {
-  loading.value = true
-  try {
-    const res = await getStudentList(queryParams)
-    studentList.value = res.records || []
-    total.value = res.total || 0
-  } catch (error) {
-    console.error('获取学生列表失败:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 搜索
-const handleSearch = () => {
-  queryParams.page = 1
-  fetchStudentList()
-}
-
-// 重置
-const handleReset = () => {
-  queryParams.page = 1
-  queryParams.keyword = ''
-  queryParams.className = undefined
-  queryParams.college = ''
-  queryParams.status = undefined
-  fetchStudentList()
 }
 
 // 状态快速切换 (正常/冻结)
@@ -291,7 +233,6 @@ const handleDelete = (row: StudentVO) => {
 }
 
 onMounted(() => {
-  fetchStudentList()
   fetchClasses()
 })
 </script>
@@ -589,42 +530,7 @@ onMounted(() => {
         </el-row>
 
         <el-form-item label="学生头像" prop="avatar">
-          <div class="avatar-uploader-container">
-            <el-upload
-              class="avatar-uploader"
-              :show-file-list="false"
-              :before-upload="beforeAvatarUpload"
-              :http-request="handleAvatarUpload"
-              accept="image/jpeg,image/png,image/jpg,image/webp"
-            >
-              <div v-if="formData.avatar" class="avatar-preview-box" v-loading="uploadingAvatar">
-                <img :src="formData.avatar" class="avatar-img" />
-                <div class="avatar-hover-mask">
-                  <el-icon :size="16"><UploadFilled /></el-icon>
-                  <span>更换图片</span>
-                </div>
-              </div>
-              <div v-else class="avatar-placeholder" v-loading="uploadingAvatar">
-                <el-icon class="uploader-icon" :size="20"><Plus /></el-icon>
-                <span class="uploader-text">上传至七牛云</span>
-              </div>
-            </el-upload>
-            <div class="avatar-info-box">
-              <el-input
-                v-model="formData.avatar"
-                placeholder="支持直接上传图片，或在此粘贴外链 URL"
-                clearable
-                :prefix-icon="Picture"
-              />
-              <div class="avatar-tip">
-                <span v-if="formData.avatar" class="qiniu-status">
-                  <el-icon color="#67c23a"><Check /></el-icon> 七牛云存储地址就绪
-                  <el-button link type="danger" size="small" @click="formData.avatar = ''" style="margin-left: 8px;">清空</el-button>
-                </span>
-                <span v-else class="tip-text">支持 JPG/PNG/WEBP，点击左侧按钮直接上传七牛云</span>
-              </div>
-            </div>
-          </div>
+          <ImageUploader v-model="formData.avatar" label="头像" />
         </el-form-item>
 
         <el-form-item v-if="isEdit" label="账号状态" prop="status">
@@ -688,104 +594,5 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-}
-
-/* 头像上传组件样式 */
-.avatar-uploader-container {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
-.avatar-uploader {
-  flex-shrink: 0;
-}
-
-.avatar-preview-box {
-  position: relative;
-  width: 68px;
-  height: 68px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--el-border-color);
-  cursor: pointer;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.avatar-hover-mask {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  font-size: 11px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.avatar-preview-box:hover .avatar-hover-mask {
-  opacity: 1;
-}
-
-.avatar-placeholder {
-  width: 68px;
-  height: 68px;
-  border: 1.5px dashed var(--el-border-color);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  background-color: var(--el-fill-color-blank);
-  transition: all 0.2s ease;
-}
-
-.avatar-placeholder:hover {
-  border-color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-}
-
-.uploader-icon {
-  color: var(--el-text-color-secondary);
-}
-
-.uploader-text {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  line-height: 1;
-}
-
-.avatar-info-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.avatar-tip {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  display: flex;
-  align-items: center;
-}
-
-.qiniu-status {
-  color: var(--el-color-success);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
 }
 </style>

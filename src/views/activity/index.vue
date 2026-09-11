@@ -15,20 +15,35 @@ import {
 
 const router = useRouter()
 
-// ──────── 筛选参数 ────────
-const query = reactive<ActivityPageQuery>({
-  page: 1,
-  size: 10,
-  keyword: '',
-  status: '',
-  category: ''
-})
+import { usePageList } from '@/hooks/usePageList'
 
-// ──────── 状态数据 ────────
-const loading = ref(false)
-const tableData = ref<ActivityVO[]>([])
-const total = ref(0)
 const activeCategory = ref('ALL')
+
+// ──────── 分页列表状态机 ────────
+const {
+  loading,
+  list: tableData,
+  total,
+  queryParams: query,
+  load: loadData,
+  handleSearch,
+  handleReset: resetPageFilters,
+  handlePageChange,
+  handleSizeChange
+} = usePageList<Omit<ActivityPageQuery, 'page' | 'size'>, ActivityVO>({
+  initialFilters: {
+    keyword: '',
+    status: '',
+    category: ''
+  },
+  fetcher: (params) => {
+    return getActivityPage({
+      ...params,
+      category: activeCategory.value === 'ALL' ? undefined : activeCategory.value,
+      status: params.status === '' || params.status === undefined ? undefined : Number(params.status)
+    })
+  }
+})
 
 // ──────── 二维码弹窗状态 ────────
 const qrDialogVisible = ref(false)
@@ -56,60 +71,16 @@ const statusOptions = [
   { value: 3, label: '已关闭' }
 ]
 
-// ──────── 生命周期 ────────
-onMounted(() => {
-  loadData()
-})
-
 onUnmounted(stopQrTimer)
 
-// ──────── 数据加载 ────────
-async function loadData() {
-  loading.value = true
-  try {
-    const params: ActivityPageQuery = {
-      ...query,
-      category: activeCategory.value === 'ALL' ? undefined : activeCategory.value,
-      status: query.status === '' ? undefined : Number(query.status)
-    }
-    const res = await getActivityPage(params)
-    tableData.value = res.records
-    total.value = res.total
-  } catch {
-    // 错误已由拦截器处理
-  } finally {
-    loading.value = false
-  }
-}
-
-function handleSearch() {
-  query.page = 1
-  loadData()
-}
-
 function handleReset() {
-  query.keyword = ''
-  query.status = ''
   activeCategory.value = 'ALL'
-  query.page = 1
-  loadData()
+  resetPageFilters()
 }
 
 function switchCategory(cat: string) {
   activeCategory.value = cat
-  query.page = 1
-  loadData()
-}
-
-function handlePageChange(page: number) {
-  query.page = page
-  loadData()
-}
-
-function handleSizeChange(size: number) {
-  query.size = size
-  query.page = 1
-  loadData()
+  handleSearch()
 }
 
 // ──────── 跳转编辑 ────────
