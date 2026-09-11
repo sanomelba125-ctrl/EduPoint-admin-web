@@ -4,15 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { useWebSocket, onWsMessage } from '@/hooks/useWebSocket'
 import {
-  DataBoard,
-  User,
-  School,
-  Calendar,
-  Checked,
-  Coin,
-  Present,
-  ShoppingCart,
-  Medal,
   Fold,
   Expand,
   SwitchButton,
@@ -30,13 +21,21 @@ import {
   type SysNoticeVO
 } from '@/api/notice'
 import { ElMessage } from 'element-plus'
+import { buildMenuItems } from './menu'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const { connect, disconnect, isConnected } = useWebSocket()
 
-const activeMenu = computed(() => route.path)
+const menuItems = buildMenuItems()
+
+const activeMenu = computed(() => {
+  if (route.meta?.activeMenu) {
+    return route.meta.activeMenu as string
+  }
+  return route.path
+})
 
 // ================= 系统通知中心相关逻辑 =================
 const drawerVisible = ref(false)
@@ -210,49 +209,9 @@ const handleLogout = () => {
         router
         class="menu"
       >
-        <el-menu-item index="/dashboard">
-          <el-icon><DataBoard /></el-icon>
-          <template #title>数据可视化看板</template>
-        </el-menu-item>
-
-        <el-menu-item index="/user">
-          <el-icon><User /></el-icon>
-          <template #title>系统用户管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/student">
-          <el-icon><School /></el-icon>
-          <template #title>学生信息管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/activity">
-          <el-icon><Calendar /></el-icon>
-          <template #title>活动发布管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/student-activity">
-          <el-icon><Checked /></el-icon>
-          <template #title>学生活动管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/student-point">
-          <el-icon><Coin /></el-icon>
-          <template #title>学生积分管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/gift">
-          <el-icon><Present /></el-icon>
-          <template #title>礼物库管理</template>
-        </el-menu-item>
-
-        <el-menu-item index="/student-gift">
-          <el-icon><ShoppingCart /></el-icon>
-          <template #title>礼物兑换审核</template>
-        </el-menu-item>
-
-        <el-menu-item index="/certificate">
-          <el-icon><Medal /></el-icon>
-          <template #title>电子证书防伪</template>
+        <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
+          <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+          <template #title>{{ item.title }}</template>
         </el-menu-item>
       </el-menu>
     </el-aside>

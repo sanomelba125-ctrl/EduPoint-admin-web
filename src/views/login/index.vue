@@ -30,53 +30,30 @@ const rules = reactive<FormRules>({
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
-  await loginFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    loading.value = true
+  const valid = await loginFormRef.value.validate().catch(() => false)
+  if (!valid) return
 
-    try {
-      // 发起真实后端管理员认证接口
-      const res = await loginApi({
-        username: form.username.trim(),
-        password: form.password.trim()
-      })
+  loading.value = true
+  try {
+    const res = await loginApi({
+      username: form.username.trim(),
+      password: form.password.trim()
+    })
 
-      if (res && res.token) {
-        userStore.setToken(res.token)
-        const info = res.userInfo || res.user || {
-          id: 1,
-          username: form.username,
-          nickname: '超级管理员'
-        }
-        userStore.setUserInfo(info)
-        ElMessage.success('管理员身份鉴权成功，正在进入系统...')
-        router.push('/dashboard')
-      }
-    } catch (err: any) {
-      // 若后端离线或未启动，提供高保真原型容灾演示模式
-      console.warn('后端连接异常或鉴权失败，尝试容灾匹配:', err)
-      if ((form.username === 'admin' && form.password === '123') || (form.username === 'admin_super' && form.password === 'admin123')) {
-        userStore.setToken('token_adm_mock_' + Date.now())
-        userStore.setUserInfo({
-          id: 1,
-          username: form.username,
-          nickname: '超级管理员'
-        })
-        ElMessage.success('演示模式鉴权通过')
-        router.push('/dashboard')
-      } else if (err?.message) {
-        ElMessage.error(err.message || '登录失败：用户名或密码错误')
-      }
-    } finally {
-      loading.value = false
+    if (!res?.token) {
+      ElMessage.error('登录响应缺少令牌，请检查后端服务')
+      return
     }
-  })
-}
 
-// 一键填入演示账号
-const prefillTestAccount = () => {
-  form.username = 'admin'
-  form.password = '123'
+    userStore.setToken(res.token)
+    userStore.setUserInfo(res.userInfo ?? res.user)
+    ElMessage.success('管理员身份鉴权成功，正在进入系统...')
+    await router.push('/dashboard')
+  } catch {
+    // 业务错误已由 request.ts 统一弹出提示，此处不再重复，且严禁伪造登录态
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -134,12 +111,6 @@ const prefillTestAccount = () => {
         管理端采用独立权限隔离策略，与移动端学生 Token 严格隔离。登录凭证有效期 2 小时，所有接口请求均受 Spring Security RBAC 鉴权保护并审计留痕。
       </div>
 
-      <!-- 快捷填入演示账号 -->
-      <div class="quick-prefill-bar">
-        <el-button type="info" text size="small" @click="prefillTestAccount">
-          一键填入系统管理员账号 (admin / 123)
-        </el-button>
-      </div>
     </div>
   </div>
 </template>
@@ -238,12 +209,5 @@ const prefillTestAccount = () => {
 
 .auth-alert-box strong {
   color: #303133;
-}
-
-.quick-prefill-bar {
-  margin-top: 16px;
-  text-align: center;
-  border-top: 1px solid #ebeef5;
-  padding-top: 12px;
 }
 </style>
