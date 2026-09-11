@@ -2,7 +2,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Upload } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
+import ImageUploader from '@/components/ImageUploader.vue'
 import {
   getActivityDetail,
   createActivity,
@@ -108,11 +109,6 @@ function updateRadiusCircle(val: number) {
   mapCircleStyle.value = { ...mapCircleStyle.value, width: `${size}px`, height: `${size}px` }
 }
 
-// ──────── 图片上传（占位） ────────
-function handleCoverUpload(info: any) {
-  // 实际项目中调用 /common/upload 接口
-  ElMessage.info('上传功能需对接七牛云 /common/upload 接口')
-}
 
 // ──────── 初始化 ────────
 onMounted(async () => {
@@ -279,14 +275,8 @@ function goBack() {
           />
         </el-form-item>
 
-        <el-form-item label="活动封面图">
-          <div class="cover-upload-area">
-            <el-input v-model="form.coverImage" placeholder="粘贴图片 URL，或点击右侧上传" style="flex: 1;" />
-            <el-button :icon="Upload" @click="handleCoverUpload" style="margin-left: 8px;">上传图片</el-button>
-          </div>
-          <div v-if="form.coverImage" class="cover-preview">
-            <el-image :src="form.coverImage" fit="cover" style="width: 120px; height: 80px; border-radius: 4px;" />
-          </div>
+        <el-form-item label="活动封面图" prop="coverImage">
+          <ImageUploader v-model="form.coverImage" label="活动封面" :preview-size="80" />
         </el-form-item>
       </el-card>
 
@@ -507,15 +497,6 @@ function goBack() {
   justify-content: space-between;
 }
 
-/* 封面上传 */
-.cover-upload-area {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-.cover-preview {
-  margin-top: 8px;
-}
 
 /* 预设地点 */
 .preset-btns {
