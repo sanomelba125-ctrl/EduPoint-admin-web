@@ -2,7 +2,45 @@
 import { ref, onMounted, onUnmounted, nextTick, markRaw } from 'vue'
 import { User, Checked, PieChart, Coin, Refresh, TrendCharts, Trophy } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import {
+  LineChart,
+  PieChart as EPieChart,
+  type LineSeriesOption,
+  type PieSeriesOption
+} from 'echarts/charts'
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  TitleComponent,
+  type GridComponentOption,
+  type TooltipComponentOption,
+  type LegendComponentOption,
+  type TitleComponentOption
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+
+// 按需注册 ECharts 核心模块与组件
+echarts.use([
+  LineChart,
+  EPieChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  TitleComponent,
+  CanvasRenderer
+])
+
+// 组合按需图表类型定义
+type ECOption = echarts.ComposeOption<
+  | LineSeriesOption
+  | PieSeriesOption
+  | GridComponentOption
+  | TooltipComponentOption
+  | LegendComponentOption
+  | TitleComponentOption
+>
 import {
   getDashboardOverview,
   getDashboardTopStudents,
@@ -52,7 +90,7 @@ function initTrendChart(trendData: DailyTrendVO[]) {
     ? trendData.map(item => item.count) 
     : [0, 0, 0, 0, 0, 0, 0]
 
-  const option: echarts.EChartsOption = {
+  const option: ECOption = {
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -122,7 +160,7 @@ function initCategoryChart(categoryData: CategoryStatVO[]) {
     ? categoryData.map(item => ({ name: item.name || item.category, value: item.count }))
     : [{ name: '暂无数据', value: 0 }]
 
-  const option: echarts.EChartsOption = {
+  const option: ECOption = {
     tooltip: {
       trigger: 'item',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',

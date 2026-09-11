@@ -38,6 +38,18 @@ export default defineConfig(async () => {
           changeOrigin: true
         }
       }
+    },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            echarts: ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
+            'element-plus': ['element-plus'],
+            vue: ['vue', 'vue-router', 'pinia']
+          }
+        }
+      }
     }
   }
 })
