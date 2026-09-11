@@ -127,11 +127,12 @@ const mockCertificates: CertificateItem[] = [
 export async function getCertificateListApi(params: CertificateQueryParams) {
   try {
     const res: any = await request.get('/certificate/list', { params })
-    if (res && res.code === 200 && res.data) {
-      return res.data
+    const data = res?.records !== undefined ? res : (res?.data || res)
+    if (data && Array.isArray(data.records)) {
+      return data
     }
   } catch (error) {
-    // 后端接口未就绪时自动平滑回退至本地 Mock 数据
+    console.warn('[Certificate] API request failed, checking fallback:', error)
   }
 
   // 本地过滤与分页实现
@@ -178,11 +179,9 @@ export async function getCertificateListApi(params: CertificateQueryParams) {
 export async function revokeCertificateApi(id: number, revokeReason: string) {
   try {
     const res: any = await request.put(`/certificate/${id}/revoke`, { revokeReason })
-    if (res && res.code === 200) {
-      return res.data
-    }
+    return res
   } catch (error) {
-    // 接口未就绪，本地状态撤销
+    console.warn('[Certificate] Revoke API call error, checking fallback:', error)
   }
 
   const target = mockCertificates.find(c => c.id === id)
@@ -200,11 +199,16 @@ export async function revokeCertificateApi(id: number, revokeReason: string) {
 export async function verifyCertificateApi(certificateNo: string): Promise<CertificateVerifyResult> {
   try {
     const res: any = await request.get(`/certificate/verify/${certificateNo}`)
-    if (res && res.code === 200 && res.data) {
-      return res.data
+    const data = (res && res.data) ? res.data : res
+    if (data && data.certificateNo) {
+      return {
+        ...data,
+        studentNameMasked: data.studentNameMasked || data.studentName,
+        verifyTime: data.verifyTime || new Date().toLocaleString()
+      }
     }
   } catch (error) {
-    // 接口未就绪，本地校验
+    console.warn('[Certificate] Public verify API call error, checking fallback:', error)
   }
 
   const target = mockCertificates.find(c => c.certificateNo.toUpperCase() === certificateNo.trim().toUpperCase())
@@ -233,3 +237,4 @@ export async function verifyCertificateApi(certificateNo: string): Promise<Certi
     verifyTime: new Date().toLocaleString()
   }
 }
+
