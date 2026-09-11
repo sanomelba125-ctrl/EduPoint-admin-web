@@ -2,8 +2,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Plus, Search, Refresh, Edit, Delete, SwitchButton, Present, UploadFilled, Check } from '@element-plus/icons-vue'
-import { uploadImageApi } from '@/api/common'
+import { Plus, Search, Refresh, Edit, Delete, SwitchButton, Present } from '@element-plus/icons-vue'
+import ImageUploader from '@/components/ImageUploader.vue'
 import {
   getGiftList,
   createGift,
@@ -108,41 +108,7 @@ const openCreateDialog = () => {
   dialogVisible.value = true
 }
 
-// 七牛云图片上传状态与逻辑
-const uploading = ref(false)
 
-const beforeImageUpload = (file: File) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
-  if (!isImage) {
-    ElMessage.error('只能上传图片格式文件 (JPG/PNG/WEBP)!')
-    return false
-  }
-  if (!isLt5M) {
-    ElMessage.error('上传图片大小不能超过 5MB!')
-    return false
-  }
-  return true
-}
-
-const handleCustomUpload = async (options: any) => {
-  const { file } = options
-  uploading.value = true
-  try {
-    const url = await uploadImageApi(file)
-    formData.image = url
-    ElMessage.success('礼品照片已成功上传至七牛云存储！')
-  } catch (err: any) {
-    console.error('七牛云上传异常:', err)
-    ElMessage.error(err.message || '上传七牛云失败，请检查网络或七牛云配置')
-  } finally {
-    uploading.value = false
-  }
-}
-
-const handleRemoveImage = () => {
-  formData.image = ''
-}
 
 const openEditDialog = (row: GiftVO) => {
   isEdit.value = true
@@ -431,53 +397,7 @@ onMounted(() => {
         </el-form-item>
 
         <el-form-item label="礼品封面照片" prop="image">
-          <div class="image-upload-wrapper">
-            <el-upload
-              class="gift-uploader"
-              :show-file-list="false"
-              :before-upload="beforeImageUpload"
-              :http-request="handleCustomUpload"
-              accept="image/jpeg,image/png,image/jpg,image/webp"
-            >
-              <div v-if="formData.image" class="image-preview-box">
-                <el-image :src="formData.image" fit="contain" class="preview-img">
-                  <template #error>
-                    <div class="image-error-slot">
-                      <el-icon :size="28" color="#e6a23c"><Warning /></el-icon>
-                      <span class="error-tip">图片加载失败</span>
-                      <span class="error-sub">点击可重新上传，或检查七牛云空间是否设为公开</span>
-                    </div>
-                  </template>
-                </el-image>
-                <div class="image-hover-mask">
-                  <el-icon :size="20"><UploadFilled /></el-icon>
-                  <span>点击更换七牛云照片</span>
-                </div>
-              </div>
-              <div v-else class="upload-trigger-placeholder" v-loading="uploading">
-                <el-icon class="uploader-icon" :size="28"><Plus /></el-icon>
-                <div class="uploader-text">点击上传礼品照片至七牛云</div>
-                <div class="uploader-tip">支持 JPG / PNG / WEBP，小于 5MB</div>
-              </div>
-            </el-upload>
-
-            <div v-if="formData.image" class="image-meta-bar">
-              <el-tag size="small" type="success" effect="light">
-                <el-icon><Check /></el-icon> 七牛云存储就绪
-              </el-tag>
-              <el-button link type="danger" size="small" @click="handleRemoveImage">移除照片</el-button>
-            </div>
-
-            <el-input
-              v-model="formData.image"
-              placeholder="http(s)://... 可粘贴外链或通过上方上传"
-              size="small"
-              class="mt-2"
-              clearable
-            >
-              <template #prepend>七牛云 URL</template>
-            </el-input>
-          </div>
+          <ImageUploader v-model="formData.image" label="礼品照片" :preview-size="80" />
         </el-form-item>
 
         <el-form-item label="礼品说明/提货" prop="description">
@@ -636,139 +556,4 @@ onMounted(() => {
   margin-top: 16px;
 }
 
-/* 七牛云图片上传专属样式 */
-.image-upload-wrapper {
-  width: 100%;
-}
-
-.gift-uploader {
-  width: 100%;
-}
-
-.gift-uploader :deep(.el-upload) {
-  display: block;
-  width: 100%;
-}
-
-.image-preview-box {
-  position: relative;
-  width: 100%;
-  height: 180px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--el-border-color);
-  background-color: var(--el-fill-color-light);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.preview-img {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.preview-img :deep(img) {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.image-error-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--el-text-color-secondary);
-  padding: 16px;
-  text-align: center;
-}
-
-.image-error-slot .error-tip {
-  color: var(--el-color-warning-dark-2);
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.image-error-slot .error-sub {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  line-height: 1.4;
-}
-
-.image-hover-mask {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 13px;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.image-preview-box:hover .image-hover-mask {
-  opacity: 1;
-}
-
-.upload-trigger-placeholder {
-  width: 100%;
-  height: 150px;
-  border: 2px dashed var(--el-border-color);
-  border-radius: 8px;
-  background-color: var(--el-fill-color-blank);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.upload-trigger-placeholder:hover {
-  border-color: var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-}
-
-.uploader-icon {
-  color: var(--el-text-color-secondary);
-  transition: transform 0.2s ease;
-}
-
-.upload-trigger-placeholder:hover .uploader-icon {
-  color: var(--el-color-primary);
-  transform: scale(1.1);
-}
-
-.uploader-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
-}
-
-.uploader-tip {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.image-meta-bar {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.mt-2 {
-  margin-top: 8px;
-}
 </style>
