@@ -1,0 +1,111 @@
+/**
+ * 高德地图 (AMap) 2.0 JS SDK 异步加载与选址工具模块
+ */
+
+export const AMAP_CONFIG = {
+  key: 'f2bb704018d6fb8aafa3d1bcb880b62d',
+  securityJsCode: '77b5607769c0e45c2ad22c6b454220ca',
+  version: '2.0'
+}
+
+declare global {
+  interface Window {
+    _AMapSecurityConfig?: {
+      securityJsCode?: string
+      serviceHost?: string
+    }
+    AMap?: any
+  }
+}
+
+let amapLoadPromise: Promise<any> | null = null
+
+/**
+ * 确保高德地图 2.0 SDK 注入安全密钥并完成异步加载
+ */
+export function loadAMapSDK(): Promise<any> {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('AMap can only run in browser environment'))
+  }
+
+  if (window.AMap && window.AMap.Map) {
+    return Promise.resolve(window.AMap)
+  }
+
+  if (amapLoadPromise) {
+    return amapLoadPromise
+  }
+
+  amapLoadPromise = new Promise((resolve, reject) => {
+    // 注入高德安全密钥（必须在引入 JS 之前注入）
+    window._AMapSecurityConfig = {
+      securityJsCode: AMAP_CONFIG.securityJsCode
+    }
+
+    if (window.AMap) {
+      if (window.AMap.plugin) {
+        window.AMap.plugin(
+          ['AMap.Geolocation', 'AMap.Geocoder', 'AMap.AutoComplete', 'AMap.PlaceSearch', 'AMap.Circle'],
+          () => {
+            resolve(window.AMap)
+          }
+        )
+      } else {
+        resolve(window.AMap)
+      }
+      return
+    }
+
+    const script = document.createElement('script')
+    script.type = 'text/javascript'
+    script.async = true
+    script.src = `https://webapi.amap.com/maps?v=${AMAP_CONFIG.version}&key=${AMAP_CONFIG.key}&plugin=AMap.Geolocation,AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch,AMap.Circle`
+
+    script.onload = () => {
+      if (window.AMap) {
+        resolve(window.AMap)
+      } else {
+        reject(new Error('AMap script loaded but window.AMap is undefined'))
+      }
+    }
+
+    script.onerror = err => {
+      amapLoadPromise = null
+      reject(err)
+    }
+
+    document.head.appendChild(script)
+  })
+
+  return amapLoadPromise
+}
+
+/**
+ * 逆地理编码：根据经纬度反查结构化地址与 POI 信息
+ */
+export async function getAddressByCoords(
+  lng: number,
+  lat: number
+): Promise<{ formattedAddress: string; poiName?: string }> {
+  const AMap = await loadAMapSDK()
+  return new Promise((resolve, reject) => {
+    const geocoder = new AMap.Geocoder({
+      city: '全国',
+      radius: 1000
+    })
+
+    geocoder.getAddress([lng, lat], (status: string, result: any) => {
+      if (status === 'complete' && result.regeocode) {
+        const addr = result.regeocode.formattedAddress || ''
+        const pois = result.regeocode.pois || []
+        const poiName = pois.length > 0 ? pois[0].name : ''
+        resolve({
+          formattedAddress: addr,
+          poiName: poiName || addr
+        })
+      } else {
+        reject(new Error('逆地理编码失败: ' + status))
+      }
+    })
+  })
+}

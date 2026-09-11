@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Upload } from '@element-plus/icons-vue'
+import {
+  ArrowLeft,
+  Search,
+  Aim,
+  Location,
+  CircleCheck,
+  Warning
+} from '@element-plus/icons-vue'
 import {
   getActivityDetail,
   createActivity,
   updateActivity,
   type ActivitySaveDTO
 } from '@/api/activity'
+import { loadAMapSDK, getAddressByCoords } from '@/utils/amap'
 
 const route = useRoute()
 const router = useRouter()
@@ -66,52 +74,207 @@ const categoryOptions = [
   { value: 'OTHER', label: '其他拓展' }
 ]
 
-// ──────── 预设地点 ────────
+// ──────── 预设校园地点 ────────
 const presetLocations = [
-  { name: '信息学部 401 报告厅', address: '信息学部主楼4层', lng: 118.156821, lat: 24.629104 },
-  { name: '大学生活动中心', address: '大学生活动中心一层', lng: 118.154210, lat: 24.628041 },
-  { name: '东区主体育场', address: '东校区主体育场', lng: 118.159330, lat: 24.631220 },
-  { name: '工程训练中心', address: '工程训练中心实验楼', lng: 118.152190, lat: 24.626880 },
-  { name: '图书馆报告厅', address: '图书馆A区一层东侧', lng: 118.155600, lat: 24.628800 }
+  { name: '信息学部 401 报告厅', address: '信息学部主楼4层学术报告厅', lng: 118.156821, lat: 24.629104 },
+  { name: '大学生活动中心', address: '大学生活动中心青年广场', lng: 118.154210, lat: 24.628041 },
+  { name: '东区主体育场', address: '东校区主体育场主席台', lng: 118.159330, lat: 24.631220 },
+  { name: '工程训练中心', address: '工程训练中心综合实验楼', lng: 118.152190, lat: 24.626880 },
+  { name: '图书馆报告厅', address: '图书馆A区一层东侧多功能厅', lng: 118.155600, lat: 24.628800 }
 ]
 
-// ──────── 地图标记位置（模拟展示） ────────
-const mapPinStyle = ref({ left: '50%', top: '50%' })
-const mapCircleStyle = ref({ left: '50%', top: '50%', width: '140px', height: '140px' })
+// ──────── 高德地图 2.0 选址与打卡点集成 ────────
+const amapInstance = ref<any>(null)
+const markerInstance = ref<any>(null)
+const circleInstance = ref<any>(null)
+const searchKeyword = ref('')
+const searchingPoi = ref(false)
+const locatingCurrent = ref(false)
+const mapLoaded = ref(false)
 
-function handleMapClick(e: MouseEvent) {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  const x = e.clientX - rect.left
-  const y = e.clientY - rect.top
-  mapPinStyle.value = { left: `${x}px`, top: `${y}px` }
-  mapCircleStyle.value = {
-    left: `${x}px`,
-    top: `${y}px`,
-    width: `${Math.round((form.locationRadius! / 500) * 140)}px`,
-    height: `${Math.round((form.locationRadius! / 500) * 140)}px`
+/**
+ * 初始化高德 2.0 地图实例
+ */
+async function initAMap() {
+  await nextTick()
+  try {
+    const AMap = await loadAMapSDK()
+    const container = document.getElementById('amapContainer')
+    if (!container) return
+
+    // 获取初始坐标：已有则用已有的（如活动109），否则取默认基准点
+    const lng = form.longitude || 118.156821
+    const lat = form.latitude || 24.629104
+    const center = [lng, lat]
+
+    if (amapInstance.value) {
+      amapInstance.value.destroy()
+    }
+
+    const map = new AMap.Map('amapContainer', {
+      zoom: 16,
+      center,
+      resizeEnable: true
+    })
+    amapInstance.value = map
+
+    // 1. 创建红色中心打卡图钉 Marker（可直接拖拽调整）
+    const marker = new AMap.Marker({
+      position: center,
+      draggable: true,
+      cursor: 'move',
+      title: '可直接拖拽调整打卡中心点'
+    })
+    marker.setMap(map)
+    markerInstance.value = marker
+
+    // 2. 创建半透明核验半径覆盖圆 Circle
+    const circle = new AMap.Circle({
+      center,
+      radius: form.locationRadius || 500,
+      strokeColor: '#409EFF',
+      strokeOpacity: 0.85,
+      strokeWeight: 2,
+      fillColor: '#409EFF',
+      fillOpacity: 0.22
+    })
+    circle.setMap(map)
+    circleInstance.value = circle
+
+    // 3. 拖拽 Marker 松手时，选址并逆地理编码回填
+    marker.on('dragend', async (e: any) => {
+      const p = e.lnglat
+      await applyPickedLocation(p.getLng(), p.getLat())
+    })
+
+    // 4. 单击地图任意位置选址并导入打卡点
+    map.on('click', async (e: any) => {
+      const p = e.lnglat
+      await applyPickedLocation(p.getLng(), p.getLat())
+    })
+
+    mapLoaded.value = true
+  } catch (err: any) {
+    console.error('高德地图初始化异常:', err)
   }
-  // 模拟坐标生成
-  form.longitude = parseFloat((118.15 + x / 2000).toFixed(6))
-  form.latitude = parseFloat((24.62 + y / 2000).toFixed(6))
 }
 
-function setPresetLocation(preset: typeof presetLocations[0]) {
-  form.locationName = preset.name
-  form.locationAddress = preset.address
-  form.longitude = preset.lng
-  form.latitude = preset.lat
-  ElMessage.success(`已设置中心点：${preset.name}`)
+/**
+ * 选址应用与逆地理编码数据回填
+ */
+async function applyPickedLocation(lng: number, lat: number, customName?: string) {
+  const roundedLng = Number(lng.toFixed(6))
+  const roundedLat = Number(lat.toFixed(6))
+  form.longitude = roundedLng
+  form.latitude = roundedLat
+
+  if (markerInstance.value) {
+    markerInstance.value.setPosition([roundedLng, roundedLat])
+  }
+  if (circleInstance.value) {
+    circleInstance.value.setCenter([roundedLng, roundedLat])
+  }
+  if (amapInstance.value) {
+    amapInstance.value.panTo([roundedLng, roundedLat])
+  }
+
+  try {
+    const geo = await getAddressByCoords(roundedLng, roundedLat)
+    if (geo.formattedAddress) {
+      form.locationAddress = geo.formattedAddress
+    }
+    if (customName) {
+      form.locationName = customName
+    } else if (geo.poiName) {
+      form.locationName = geo.poiName
+    }
+    ElMessage.success(`已选址并导入打卡点：${form.locationName || geo.formattedAddress}`)
+  } catch {
+    ElMessage.success(`坐标已更新：(${roundedLng}, ${roundedLat})`)
+  }
 }
 
+/**
+ * 核验半径实时响应更新
+ */
 function updateRadiusCircle(val: number) {
-  const size = Math.round((val / 500) * 140)
-  mapCircleStyle.value = { ...mapCircleStyle.value, width: `${size}px`, height: `${size}px` }
+  if (circleInstance.value) {
+    circleInstance.value.setRadius(val)
+  }
 }
 
-// ──────── 图片上传（占位） ────────
-function handleCoverUpload(info: any) {
-  // 实际项目中调用 /common/upload 接口
-  ElMessage.info('上传功能需对接七牛云 /common/upload 接口')
+/**
+ * 快速选择校园地点
+ */
+async function setPresetLocation(preset: typeof presetLocations[0]) {
+  await applyPickedLocation(preset.lng, preset.lat, preset.name)
+  form.locationAddress = preset.address
+}
+
+/**
+ * 高德 POI 智能搜索选址
+ */
+async function handleSearchPOI() {
+  const kw = searchKeyword.value.trim()
+  if (!kw) {
+    ElMessage.warning('请输入搜索关键字，如建筑名、图书馆等')
+    return
+  }
+
+  searchingPoi.value = true
+  try {
+    const AMap = await loadAMapSDK()
+    const placeSearch = new AMap.PlaceSearch({
+      city: '全国',
+      pageSize: 5
+    })
+
+    placeSearch.search(kw, async (status: string, result: any) => {
+      searchingPoi.value = false
+      if (status === 'complete' && result.poiList && result.poiList.pois && result.poiList.pois.length > 0) {
+        const firstPoi = result.poiList.pois[0]
+        const lng = firstPoi.location.getLng()
+        const lat = firstPoi.location.getLat()
+        await applyPickedLocation(lng, lat, firstPoi.name)
+        form.locationAddress = firstPoi.address || firstPoi.name
+        ElMessage.success(`已定位并导入选址：${firstPoi.name}`)
+      } else {
+        ElMessage.warning('未搜索到相关地点，请尝试更精确的名称')
+      }
+    })
+  } catch (err: any) {
+    searchingPoi.value = false
+    ElMessage.error(err.message || '高德 POI 搜索失败')
+  }
+}
+
+/**
+ * 一键定位到当前设备真实位置
+ */
+async function handleLocateCurrent() {
+  locatingCurrent.value = true
+  try {
+    const AMap = await loadAMapSDK()
+    const geolocation = new AMap.Geolocation({
+      enableHighAccuracy: true,
+      timeout: 10000
+    })
+
+    geolocation.getCurrentPosition(async (status: string, result: any) => {
+      locatingCurrent.value = false
+      if (status === 'complete' && result.position) {
+        const lng = result.position.getLng()
+        const lat = result.position.getLat()
+        await applyPickedLocation(lng, lat)
+        ElMessage.success('已自动导入当前设备位置为活动打卡点')
+      } else {
+        ElMessage.warning('获取设备定位超时，可在地图上直接点击选址')
+      }
+    })
+  } catch (err: any) {
+    locatingCurrent.value = false
+    ElMessage.error(err.message || '定位插件调用失败')
+  }
 }
 
 // ──────── 初始化 ────────
@@ -122,6 +285,7 @@ onMounted(async () => {
     activityId.value = Number(id)
     await loadDetail(activityId.value)
   }
+  await initAMap()
 })
 
 async function loadDetail(id: number) {
@@ -252,49 +416,17 @@ function goBack() {
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="候补排队机制">
-              <el-select v-model="form.waitlistEnabled" style="width: 100%;">
-                <el-option :value="1" label="启用候补队列（满额自动排队）" />
-                <el-option :value="0" label="关闭候补（满额即停止报名）" />
-              </el-select>
+            <el-form-item label="候补队列机制">
+              <el-switch
+                v-model="form.waitlistEnabled"
+                :active-value="1"
+                :inactive-value="0"
+                active-text="开启候补"
+                inactive-text="关闭"
+              />
             </el-form-item>
           </el-col>
         </el-row>
-
-        <el-form-item label="活动详细描述">
-          <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="3"
-            placeholder="填写活动介绍、主讲人背景、面向专业等..."
-          />
-        </el-form-item>
-
-        <el-form-item label="打卡规则说明">
-          <el-input
-            v-model="form.ruleDescription"
-            type="textarea"
-            :rows="2"
-            placeholder="例：入场扫码打卡，全程参与方可颁发荣誉证书"
-          />
-        </el-form-item>
-
-        <el-form-item label="活动封面图">
-          <div class="cover-upload-area">
-            <el-input v-model="form.coverImage" placeholder="粘贴图片 URL，或点击右侧上传" style="flex: 1;" />
-            <el-button :icon="Upload" @click="handleCoverUpload" style="margin-left: 8px;">上传图片</el-button>
-          </div>
-          <div v-if="form.coverImage" class="cover-preview">
-            <el-image :src="form.coverImage" fit="cover" style="width: 120px; height: 80px; border-radius: 4px;" />
-          </div>
-        </el-form-item>
-      </el-card>
-
-      <!-- ② 时间规划 -->
-      <el-card shadow="never" class="form-section">
-        <template #header>
-          <span class="section-title">② 时间周期与报名窗口</span>
-        </template>
 
         <el-row :gutter="20">
           <el-col :span="12">
@@ -302,8 +434,7 @@ function goBack() {
               <el-date-picker
                 v-model="form.startTime"
                 type="datetime"
-                placeholder="选择开始时间"
-                format="YYYY-MM-DD HH:mm:ss"
+                placeholder="选择活动开始时间"
                 value-format="YYYY-MM-DD HH:mm:ss"
                 style="width: 100%;"
               />
@@ -314,61 +445,96 @@ function goBack() {
               <el-date-picker
                 v-model="form.endTime"
                 type="datetime"
-                placeholder="选择结束时间"
-                format="YYYY-MM-DD HH:mm:ss"
+                placeholder="选择活动结束时间"
                 value-format="YYYY-MM-DD HH:mm:ss"
                 style="width: 100%;"
               />
             </el-form-item>
           </el-col>
         </el-row>
+
+        <el-form-item label="活动封面 URL">
+          <el-input v-model="form.coverImage" placeholder="请输入图片网络直链地址（如七牛云 OSS 图片链接）" clearable />
+        </el-form-item>
+
+        <el-form-item label="活动简介">
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="3"
+            placeholder="简要介绍活动背景、主讲嘉宾或核心内容"
+          />
+        </el-form-item>
+
+        <el-form-item label="规则与注意事项">
+          <el-input
+            v-model="form.ruleDescription"
+            type="textarea"
+            :rows="2"
+            placeholder="签到考勤规则、迟到扣分说明等"
+          />
+        </el-form-item>
       </el-card>
 
-      <!-- ③ GPS 打卡围栏 -->
+      <!-- ② 现场签到打卡地理围栏（高德 2.0 地图选址导入） -->
       <el-card shadow="never" class="form-section">
         <template #header>
           <div class="section-header">
-            <span class="section-title">③ 现场签到打卡地理围栏（GPS 定位）</span>
+            <span class="section-title">② 现场签到打卡地理围栏（高德 2.0 地图智能选址）</span>
             <el-switch
               v-model="form.locationCheckEnabled"
               :active-value="1"
               :inactive-value="0"
               active-text="开启定位核验"
-              inactive-text="关闭"
+              inactive-text="关闭定位核验"
             />
           </div>
         </template>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="场地名称">
-              <el-input v-model="form.locationName" placeholder="例：信息学部 401 报告厅" />
+            <el-form-item label="打卡场地名称">
+              <el-input v-model="form.locationName" placeholder="例：信息学部 401 报告厅" clearable />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="详细地址">
-              <el-input v-model="form.locationAddress" placeholder="例：图书馆A区一层东侧报告厅" />
+            <el-form-item label="详细结构化地址">
+              <el-input v-model="form.locationAddress" placeholder="高德地图选址后自动回填详细地址" clearable />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="经度">
-              <el-input-number v-model="form.longitude" :precision="6" :step="0.001" placeholder="经度" style="width: 100%;" />
+            <el-form-item label="打卡中心经度">
+              <el-input-number
+                v-model="form.longitude"
+                :precision="6"
+                :step="0.0001"
+                placeholder="经度 (Lng)"
+                style="width: 100%;"
+                @change="(val) => val && form.latitude && applyPickedLocation(val, form.latitude)"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="纬度">
-              <el-input-number v-model="form.latitude" :precision="6" :step="0.001" placeholder="纬度" style="width: 100%;" />
+            <el-form-item label="打卡中心纬度">
+              <el-input-number
+                v-model="form.latitude"
+                :precision="6"
+                :step="0.0001"
+                placeholder="纬度 (Lat)"
+                style="width: 100%;"
+                @change="(val) => val && form.longitude && applyPickedLocation(form.longitude, val)"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="核验半径(米)">
+            <el-form-item label="打卡核验半径(米)">
               <el-input-number
                 v-model="form.locationRadius"
                 :min="50"
-                :max="2000"
+                :max="3000"
                 :step="50"
                 style="width: 100%;"
                 @change="updateRadiusCircle"
@@ -377,40 +543,70 @@ function goBack() {
           </el-col>
         </el-row>
 
-        <!-- 预设地点快速选择 -->
-        <el-form-item label="快速选择校园地点">
+        <!-- 预设校园地点快捷选址 -->
+        <el-form-item label="校园快捷打卡点">
           <div class="preset-btns">
             <el-button
               v-for="loc in presetLocations"
               :key="loc.name"
               size="small"
+              plain
               @click="setPresetLocation(loc)"
-            >{{ loc.name }}</el-button>
+            >
+              <el-icon><Location /></el-icon>
+              {{ loc.name }}
+            </el-button>
           </div>
         </el-form-item>
 
-        <!-- 地图网格模拟 -->
-        <el-form-item label="点击调整中心点">
-          <div class="map-picker" @click="handleMapClick">
-            <svg
-              class="map-pin"
-              :style="mapPinStyle"
-              viewBox="0 0 24 24"
-              fill="var(--el-color-danger)"
-            >
-              <path d="M12,2C15.31,2 18,4.69 18,8C18,12.5 12,22 12,22C12,22 6,12.5 6,8C6,4.69 8.69,2 12,2M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6Z"/>
-            </svg>
-            <div class="map-circle" :style="mapCircleStyle" />
-            <div class="map-hint">提示：可在网格区域点击微调中心点坐标</div>
+        <!-- 高德地图选址交互工具栏 -->
+        <el-form-item label="地图选址交互">
+          <div class="amap-wrapper">
+            <div class="amap-toolbar">
+              <div class="search-input-group">
+                <el-input
+                  v-model="searchKeyword"
+                  placeholder="搜索校园大楼、场馆或地名（按回车或点搜索直接导入）"
+                  clearable
+                  @keyup.enter="handleSearchPOI"
+                >
+                  <template #append>
+                    <el-button :loading="searchingPoi" :icon="Search" @click="handleSearchPOI">
+                      高德选址导入
+                    </el-button>
+                  </template>
+                </el-input>
+              </div>
+
+              <el-button type="success" plain :icon="Aim" :loading="locatingCurrent" @click="handleLocateCurrent">
+                导入当前设备定位
+              </el-button>
+            </div>
+
+            <!-- 高德地图 2.0 容器 -->
+            <div class="map-container-box">
+              <div id="amapContainer" class="amap-dom"></div>
+
+              <!-- 覆盖提示小浮条 -->
+              <div class="map-status-overlay">
+                <div class="overlay-row">
+                  <el-icon color="#67c23a"><CircleCheck /></el-icon>
+                  <span><strong>已绑定打卡坐标：</strong>{{ form.longitude || '-' }}, {{ form.latitude || '-' }}</span>
+                </div>
+                <div class="overlay-row hint">
+                  <span>💡 提示：点击地图任意位置或拖拽红色图钉，即可自动导入打卡点并反查地址</span>
+                </div>
+              </div>
+            </div>
           </div>
         </el-form-item>
       </el-card>
 
-      <!-- ④ 电子证书配置 -->
+      <!-- ③ 电子证书配置 -->
       <el-card shadow="never" class="form-section">
         <template #header>
           <div class="section-header">
-            <span class="section-title">④ 权威凭证（结营电子证书）</span>
+            <span class="section-title">③ 权威凭证（结营电子证书）</span>
             <el-switch
               v-model="form.certificateEnabled"
               :active-value="1"
@@ -449,7 +645,7 @@ function goBack() {
     <!-- 底部固定操作栏 -->
     <div class="bottom-bar">
       <el-button @click="goBack">取消</el-button>
-      <el-button type="primary" size="large" :loading="submitting" @click="handleSubmit">
+      <el-button type="primary" :loading="submitting" @click="handleSubmit">
         保存并{{ isEdit ? '更新' : '发布' }}活动
       </el-button>
     </div>
@@ -458,7 +654,9 @@ function goBack() {
 
 <style scoped>
 .edit-page {
-  padding-bottom: 80px;
+  padding: 16px 20px 80px;
+  background-color: var(--el-bg-color-page, #f5f7fa);
+  min-height: calc(100vh - 84px);
 }
 
 .page-header {
@@ -466,16 +664,12 @@ function goBack() {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-  background: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-lighter);
 }
 .divider {
   color: var(--el-text-color-placeholder);
 }
 .page-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   flex: 1;
@@ -488,17 +682,18 @@ function goBack() {
 .edit-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .form-section {
   border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .section-header {
@@ -507,62 +702,75 @@ function goBack() {
   justify-content: space-between;
 }
 
-/* 封面上传 */
-.cover-upload-area {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-.cover-preview {
-  margin-top: 8px;
-}
-
-/* 预设地点 */
 .preset-btns {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-/* 地图模拟 */
-.map-picker {
+/* 高德地图 2.0 选址区域 */
+.amap-wrapper {
   width: 100%;
-  height: 220px;
-  background-color: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-base);
-  border-radius: 6px;
-  position: relative;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
   overflow: hidden;
-  cursor: crosshair;
-  background-image: radial-gradient(var(--el-border-color-base) 1px, transparent 1px);
-  background-size: 16px 16px;
+  background: #ffffff;
 }
-.map-pin {
+
+.amap-toolbar {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.search-input-group {
+  flex: 1;
+  min-width: 280px;
+}
+
+.map-container-box {
+  position: relative;
+  width: 100%;
+  height: 380px;
+}
+
+.amap-dom {
+  width: 100%;
+  height: 100%;
+}
+
+.map-status-overlay {
   position: absolute;
-  width: 24px;
-  height: 24px;
-  transform: translate(-50%, -100%);
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(6px);
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   pointer-events: none;
 }
-.map-circle {
-  position: absolute;
-  border-radius: 50%;
-  border: 1.5px dashed var(--el-color-primary);
-  background-color: rgba(64, 158, 255, 0.12);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  transition: width 0.2s, height 0.2s;
+
+.overlay-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1e293b;
 }
-.map-hint {
-  position: absolute;
-  bottom: 8px;
-  left: 10px;
+
+.overlay-row.hint {
+  color: #64748b;
   font-size: 11px;
-  color: var(--el-text-color-secondary);
-  background: rgba(255, 255, 255, 0.9);
-  padding: 2px 8px;
-  border-radius: 3px;
-  border: 1px solid var(--el-border-color-light);
 }
 
 /* 底部操作栏 */
@@ -578,5 +786,6 @@ function goBack() {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 </style>
