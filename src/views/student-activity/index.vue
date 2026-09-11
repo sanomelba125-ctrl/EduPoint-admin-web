@@ -27,6 +27,10 @@ const detailDialogVisible = ref(false)
 const currentRecord = ref<StudentActivityRecordVO | null>(null)
 
 import { usePageList } from '@/hooks/usePageList'
+import { downloadFile } from '@/utils/download'
+
+// 导出状态
+const exportLoading = ref(false)
 
 // 列表与分页状态及检索
 const {
@@ -94,21 +98,26 @@ const openDetail = (row: StudentActivityRecordVO) => {
   detailDialogVisible.value = true
 }
 
-// 导出 Excel 报表
-const handleExport = () => {
-  const token = localStorage.getItem('admin_token') || ''
-  const params = new URLSearchParams()
-  if (queryParams.studentName?.trim()) params.append('studentName', queryParams.studentName.trim())
-  if (queryParams.studentNo?.trim()) params.append('studentNo', queryParams.studentNo.trim())
-  if (queryParams.activityTitle?.trim()) params.append('activityTitle', queryParams.activityTitle.trim())
-  if (queryParams.status !== undefined && queryParams.status !== ('' as any)) {
-    params.append('status', String(queryParams.status))
+// 导出 Excel 报表（基于 Blob + Header 鉴权，避免 Token 泄露至 URL）
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    await downloadFile(
+      '/admin/export/activity-records',
+      {
+        studentName: queryParams.studentName?.trim() || undefined,
+        studentNo: queryParams.studentNo?.trim() || undefined,
+        activityTitle: queryParams.activityTitle?.trim() || undefined,
+        status: queryParams.status !== undefined && queryParams.status !== ('' as any) ? String(queryParams.status) : undefined
+      },
+      '学生活动打卡记录.xlsx'
+    )
+    ElMessage.success('报表导出成功')
+  } catch (err: any) {
+    ElMessage.error(err.message || '导出失败')
+  } finally {
+    exportLoading.value = false
   }
-  if (token) {
-    params.append('satoken', token)
-  }
-  const exportUrl = `/api/admin/export/activity-records?${params.toString()}`
-  window.open(exportUrl, '_blank')
 }
 
 // 格式化时间
@@ -232,7 +241,7 @@ const formatTime = (timeStr?: string) => {
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
           <el-button :icon="Refresh" @click="handleRefreshAll">刷新</el-button>
-          <el-button type="success" plain :icon="Download" @click="handleExport">导出报表</el-button>
+          <el-button type="success" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出报表</el-button>
         </el-form-item>
       </el-form>
     </el-card>
