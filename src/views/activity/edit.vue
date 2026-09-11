@@ -625,33 +625,66 @@ function goBack() {
           </el-col>
         </el-row>
 
-        <!-- 高德地图智能选址工作台 -->
-        <el-form-item label="地图智能选址">
+        <!-- 高德地图智能选址工作台（通栏独立排版，空间宽裕舒展） -->
+        <div class="map-section-block">
+          <div class="map-section-header">
+            <span class="map-title-label">地图智能选址与打卡范围标定</span>
+            <span class="map-title-sub">支持关键字检索建筑地点、设备定位、点击或拖拽红色图钉快速导入</span>
+          </div>
+
           <div class="amap-wrapper">
             <!-- 工具操作栏 -->
             <div class="amap-toolbar">
-              <div class="search-input-group">
+              <!-- 左侧：POI 地点搜索区域 -->
+              <div class="toolbar-search-zone">
                 <el-input
                   v-model="searchKeyword"
-                  placeholder="搜索目标地点（如：行政楼主楼、青年广场、图书馆等），按回车定位"
+                  placeholder="输入目标建筑、场馆或地名（按回车定位）"
                   clearable
+                  class="search-input"
                   @keyup.enter="handleSearchPOI"
                 >
-                  <template #append>
-                    <el-button :loading="searchingPoi" :icon="Search" @click="handleSearchPOI">
-                      搜索定位
-                    </el-button>
+                  <template #prefix>
+                    <el-icon color="#94a3b8"><Search /></el-icon>
                   </template>
                 </el-input>
+                <el-button
+                  type="primary"
+                  :loading="searchingPoi"
+                  :icon="Search"
+                  class="btn-search"
+                  @click="handleSearchPOI"
+                >
+                  搜索
+                </el-button>
               </div>
 
-              <div class="toolbar-actions">
-                <el-button type="primary" plain :icon="Aim" :loading="locatingCurrent" @click="handleLocateCurrent">
-                  定位当前设备
-                </el-button>
-                <el-button plain :icon="RefreshRight" @click="recenterMap" title="将地图视角对准当前打卡标记">
-                  复位中心
-                </el-button>
+              <!-- 中间区域分割线 -->
+              <div class="toolbar-divider"></div>
+
+              <!-- 右侧：地图快捷控制功能组 -->
+              <div class="toolbar-actions-zone">
+                <el-tooltip content="获取当前设备经纬度并快速导入为打卡点" placement="top">
+                  <el-button
+                    type="success"
+                    plain
+                    :icon="Aim"
+                    :loading="locatingCurrent"
+                    @click="handleLocateCurrent"
+                  >
+                    定位当前
+                  </el-button>
+                </el-tooltip>
+
+                <el-tooltip content="将地图视口平移对准当前已选打卡标记" placement="top">
+                  <el-button
+                    plain
+                    :icon="RefreshRight"
+                    @click="recenterMap"
+                  >
+                    复位中心
+                  </el-button>
+                </el-tooltip>
               </div>
             </div>
 
@@ -689,7 +722,7 @@ function goBack() {
               </div>
             </div>
           </div>
-        </el-form-item>
+        </div>
       </el-card>
 
       <!-- ③ 电子证书配置 -->
@@ -792,7 +825,31 @@ function goBack() {
   justify-content: space-between;
 }
 
-/* 高德地图 2.0 智能选址工作台 */
+/* 高德地图 2.0 智能选址工作台（通栏布局） */
+.map-section-block {
+  margin-top: 6px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.map-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.map-title-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.map-title-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
 .amap-wrapper {
   width: 100%;
   border: 1px solid #cbd5e1;
@@ -800,28 +857,69 @@ function goBack() {
   overflow: hidden;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
 }
 
 .amap-toolbar {
-  padding: 12px 16px;
+  width: 100%;
+  padding: 10px 16px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
+  box-sizing: border-box;
 }
 
-.search-input-group {
-  flex: 1;
-  min-width: 320px;
-}
-
-.toolbar-actions {
+.toolbar-search-zone {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 260px;
+  max-width: 400px;
+  box-sizing: border-box;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.btn-search {
+  flex-shrink: 0;
+  padding: 8px 16px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 22px;
+  background-color: #cbd5e1;
+  margin: 0 4px;
+}
+
+.toolbar-actions-zone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .toolbar-divider {
+    display: none;
+  }
+  .toolbar-search-zone {
+    max-width: 100%;
+    min-width: 100%;
+  }
+  .toolbar-actions-zone {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .map-container-box {
@@ -829,11 +927,13 @@ function goBack() {
   width: 100%;
   height: 420px;
   background-color: #f1f5f9;
+  box-sizing: border-box;
 }
 
 .amap-dom {
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
 }
 
 /* 地图加载态遮罩 */
