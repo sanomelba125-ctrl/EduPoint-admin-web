@@ -159,3 +159,20 @@ export function getActivityRecordList(params?: ActivityRecordQuery): Promise<Pag
  * 别名兼容 getActivityRecords
  */
 export const getActivityRecords = getActivityRecordList
+
+export interface ActivityRecordMetricsVO {
+  totalRecords: number
+  completedCount: number
+  pendingCount: number
+  cancelledCount: number
+  pointsDistributed: number
+}
+
+/**
+ * 管理端获取学生活动打卡记录全局业务统计指标
+ * GET /api/activity/record/metrics
+ */
+export function getActivityRecordMetrics(): Promise<ActivityRecordMetricsVO> {
+  return http.get<ActivityRecordMetricsVO>('/activity/record/metrics')
+}
+

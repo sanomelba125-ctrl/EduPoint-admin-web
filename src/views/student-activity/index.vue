@@ -16,8 +16,10 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getActivityRecordList,
+  getActivityRecordMetrics,
   type StudentActivityRecordVO,
-  type ActivityRecordQuery
+  type ActivityRecordQuery,
+  type ActivityRecordMetricsVO
 } from '@/api/activity'
 
 // 详情弹窗
@@ -55,32 +57,34 @@ const {
   }
 })
 
-// 统计指标计算（基于当前加载页及统计概况）
-const stats = computed(() => {
-  let completed = 0
-  let pending = 0
-  let cancelled = 0
-  let pointsTotal = 0
-
-  recordList.value.forEach((r) => {
-    if (r.status === 2) {
-      completed++
-      pointsTotal += r.pointsAwarded || 0
-    } else if (r.status === 1) {
-      pending++
-    } else if (r.status === 3) {
-      cancelled++
-    }
-  })
-
-  return {
-    totalRecords: total.value,
-    completedCount: completed,
-    pendingCount: pending,
-    cancelledCount: cancelled,
-    pointsDistributed: pointsTotal
-  }
+// 全局业务统计指标（由后端直接统计全量数据，避免当前页10条失真）
+const metrics = ref<ActivityRecordMetricsVO>({
+  totalRecords: 0,
+  completedCount: 0,
+  pendingCount: 0,
+  cancelledCount: 0,
+  pointsDistributed: 0
 })
+
+const fetchMetrics = async () => {
+  try {
+    const res = await getActivityRecordMetrics()
+    if (res) {
+      metrics.value = res
+    }
+  } catch (err) {
+    console.error('获取打卡全局统计指标失败', err)
+  }
+}
+
+onMounted(() => {
+  fetchMetrics()
+})
+
+const handleRefreshAll = () => {
+  fetchRecords()
+  fetchMetrics()
+}
 
 
 
@@ -127,7 +131,7 @@ const formatTime = (timeStr?: string) => {
             </div>
             <div class="stat-info">
               <div class="stat-title">全校报名参与人次</div>
-              <div class="stat-value text-blue">{{ stats.totalRecords }}</div>
+              <div class="stat-value text-blue">{{ metrics.totalRecords }}</div>
             </div>
           </div>
         </el-card>
@@ -141,7 +145,7 @@ const formatTime = (timeStr?: string) => {
             </div>
             <div class="stat-info">
               <div class="stat-title">已出勤打卡人数</div>
-              <div class="stat-value text-green">{{ stats.completedCount }}</div>
+              <div class="stat-value text-green">{{ metrics.completedCount }}</div>
             </div>
           </div>
         </el-card>
@@ -155,7 +159,7 @@ const formatTime = (timeStr?: string) => {
             </div>
             <div class="stat-info">
               <div class="stat-title">待打卡履约人次</div>
-              <div class="stat-value text-orange">{{ stats.pendingCount }}</div>
+              <div class="stat-value text-orange">{{ metrics.pendingCount }}</div>
             </div>
           </div>
         </el-card>
@@ -169,7 +173,7 @@ const formatTime = (timeStr?: string) => {
             </div>
             <div class="stat-info">
               <div class="stat-title">取消 / 未履约失效</div>
-              <div class="stat-value text-purple">{{ stats.cancelledCount }}</div>
+              <div class="stat-value text-purple">{{ metrics.cancelledCount }}</div>
             </div>
           </div>
         </el-card>
@@ -227,7 +231,7 @@ const formatTime = (timeStr?: string) => {
         <el-form-item class="actions-item">
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
-          <el-button :icon="Refresh" @click="fetchRecords">刷新</el-button>
+          <el-button :icon="Refresh" @click="handleRefreshAll">刷新</el-button>
           <el-button type="success" plain :icon="Download" @click="handleExport">导出报表</el-button>
         </el-form-item>
       </el-form>

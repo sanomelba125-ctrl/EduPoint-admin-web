@@ -14,12 +14,14 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getGiftOrderList,
+  getGiftOrderMetrics,
   confirmDelivery,
   cancelGiftOrder,
   type StudentGiftVO,
   type GiftOrderQuery,
   type DeliveryConfirmDTO,
-  type OrderCancelDTO
+  type OrderCancelDTO,
+  type GiftOrderMetricsVO
 } from '@/api/gift'
 
 import { usePageList } from '@/hooks/usePageList'
@@ -73,20 +75,31 @@ const {
 const handleReset = () => {
   searchKeyword.value = ''
   resetOrderFilters()
+  fetchMetrics()
 }
 
-// 统计数据
-const metrics = computed(() => {
-  const all = orderList.value
-  const pending = all.filter(o => o.status === 1).length
-  const completed = all.filter(o => o.status === 2).length
-  const totalPoints = all.reduce((sum, o) => sum + (o.pointsCost || 0), 0)
-  return {
-    totalCount: total.value || all.length,
-    pendingCount: pending,
-    completedCount: completed,
-    totalPoints
+// 全局业务统计指标（由后端直接统计全量数据，避免当前页10条失真）
+const metrics = ref<GiftOrderMetricsVO>({
+  totalCount: 0,
+  pendingCount: 0,
+  completedCount: 0,
+  cancelledCount: 0,
+  totalPoints: 0
+})
+
+const fetchMetrics = async () => {
+  try {
+    const res = await getGiftOrderMetrics()
+    if (res) {
+      metrics.value = res
+    }
+  } catch (err) {
+    console.error('获取礼品订单全局统计指标失败', err)
   }
+}
+
+onMounted(() => {
+  fetchMetrics()
 })
 
 // 提货码现场核销弹窗
@@ -164,6 +177,7 @@ const handleConfirmVerify = async () => {
     ElMessage.success(`订单 #${matchedOrder.value.orderNo} 提货核销成功！`)
     verifyModalVisible.value = false
     fetchOrders()
+    fetchMetrics()
   } catch (err: any) {
     ElMessage.error(err.message || '核销失败')
   } finally {
@@ -192,6 +206,7 @@ const handleConfirmCancel = async () => {
     ElMessage.success('订单已成功取消，积分已原路退回学生账户')
     cancelModalVisible.value = false
     fetchOrders()
+    fetchMetrics()
   } catch (err: any) {
     ElMessage.error(err.message || '取消订单失败')
   } finally {
@@ -237,7 +252,7 @@ const handleConfirmCancel = async () => {
 
       <div class="metric-card">
         <div class="metric-info">
-          <span class="metric-title">本页消耗积分</span>
+          <span class="metric-title">全量消耗积分</span>
           <div class="metric-number">{{ metrics.totalPoints }} <span class="metric-unit">pts</span></div>
         </div>
         <div class="metric-icon-box info">

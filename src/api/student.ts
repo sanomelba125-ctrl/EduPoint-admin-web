@@ -1,5 +1,5 @@
 import { http } from '@/utils/request'
-import type { PageResult } from './types'
+import type { PageQuery, PageResult } from './types'
 
 export interface StudentVO {
   id: number
@@ -18,10 +18,7 @@ export interface StudentVO {
   createTime?: string
 }
 
-export interface StudentQuery {
-  page?: number
-  size?: number
-  keyword?: string
+export interface StudentQuery extends PageQuery {
   className?: string
   college?: string
   major?: string
