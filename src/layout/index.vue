@@ -46,7 +46,10 @@ const noticeList = ref<SysNoticeVO[]>([])
 const unreadCount = ref(0)
 const noticePage = ref(1)
 const noticeTotal = ref(0)
+const noticePageSize = 20
 let unsubscribeWs: (() => void) | null = null
+
+const hasMoreNotices = computed(() => noticeList.value.length < noticeTotal.value)
 
 // 拉取未读通知条数
 const fetchUnreadCount = async () => {
@@ -58,24 +61,45 @@ const fetchUnreadCount = async () => {
   }
 }
 
-// 分页拉取通知列表
-const fetchNotices = async (reset = true) => {
-  if (reset) {
-    noticePage.value = 1
+// 重新加载第一页通知（覆盖模式）
+const fetchNotices = async () => {
+  noticePage.value = 1
+  noticeLoading.value = true
+  try {
+    const isReadParam = noticeTab.value === 'unread' ? 0 : noticeTab.value === 'read' ? 1 : undefined
+    const res = await getMyNoticesApi({
+      page: 1,
+      size: noticePageSize,
+      isRead: isReadParam
+    })
+    const records = res?.records || []
+    noticeList.value = records
+    noticeTotal.value = res?.total ?? records.length
+  } catch (err) {
+    console.warn('获取通知列表失败:', err)
+  } finally {
+    noticeLoading.value = false
   }
+}
+
+// 增量加载更早的历史通知（追加模式）
+const loadMoreNotices = async () => {
+  if (noticeLoading.value || !hasMoreNotices.value) return
+  noticePage.value += 1
   noticeLoading.value = true
   try {
     const isReadParam = noticeTab.value === 'unread' ? 0 : noticeTab.value === 'read' ? 1 : undefined
     const res = await getMyNoticesApi({
       page: noticePage.value,
-      size: 20,
+      size: noticePageSize,
       isRead: isReadParam
     })
     const records = res?.records || []
-    noticeList.value = records
-    noticeTotal.value = res?.total || records.length
-  } catch (err) {
-    console.warn('获取通知列表失败:', err)
+    noticeList.value = [...noticeList.value, ...records]
+    noticeTotal.value = res?.total ?? noticeList.value.length
+  } catch (error) {
+    console.warn('加载更早通知失败:', error)
+    noticePage.value -= 1 // 失败回退页码，防止下次跳页
   } finally {
     noticeLoading.value = false
   }
@@ -84,13 +108,13 @@ const fetchNotices = async (reset = true) => {
 // 打开抽屉
 const openNoticeDrawer = () => {
   drawerVisible.value = true
-  fetchNotices(true)
+  fetchNotices()
   fetchUnreadCount()
 }
 
 // 切换标签
 const handleTabChange = () => {
-  fetchNotices(true)
+  fetchNotices()
 }
 
 // 标记单条已读
@@ -111,7 +135,7 @@ const handleMarkAllRead = async () => {
     await markAllNoticesAsReadApi()
     ElMessage.success('已全部标记为已读')
     unreadCount.value = 0
-    fetchNotices(true)
+    fetchNotices()
   } catch (err) {
     ElMessage.error('操作失败')
   }
@@ -126,6 +150,9 @@ const handleDeleteNotice = async (item: SysNoticeVO, e: Event) => {
     noticeList.value = noticeList.value.filter((n) => n.id !== item.id)
     if (item.isRead === 0 && unreadCount.value > 0) {
       unreadCount.value--
+    }
+    if (noticeTotal.value > 0) {
+      noticeTotal.value--
     }
   } catch (err) {
     ElMessage.error('删除通知失败')
@@ -172,7 +199,7 @@ onMounted(() => {
   unsubscribeWs = onWsMessage(() => {
     fetchUnreadCount()
     if (drawerVisible.value) {
-      fetchNotices(true)
+      fetchNotices()
     }
   })
 })
@@ -310,7 +337,7 @@ const handleLogout = () => {
           link
           size="small"
           :icon="Refresh"
-          @click="() => fetchNotices(true)"
+          @click="fetchNotices"
         >
           刷新
         </el-button>
@@ -355,6 +382,23 @@ const handleLogout = () => {
           <span v-if="item.isRead === 1" class="read-status text-muted">已读</span>
           <span v-else class="read-status text-primary">点击标记已读</span>
         </div>
+      </div>
+
+      <!-- 底部加载更早通知分页入口 -->
+      <div v-if="noticeList.length > 0" class="notice-pagination-bar">
+        <el-button
+          v-if="hasMoreNotices"
+          text
+          type="primary"
+          :loading="noticeLoading"
+          class="load-more-btn"
+          @click="loadMoreNotices"
+        >
+          加载更早的通知（已显示 {{ noticeList.length }} / 共 {{ noticeTotal }} 条）
+        </el-button>
+        <span v-else class="all-loaded-tip">
+          已显示全部通知（共 {{ noticeTotal }} 条）
+        </span>
       </div>
     </div>
   </el-drawer>
@@ -625,5 +669,20 @@ const handleLogout = () => {
 .read-status.text-primary {
   color: #409eff;
   font-weight: 500;
+}
+
+.notice-pagination-bar {
+  text-align: center;
+  padding: 16px 0 8px;
+}
+
+.load-more-btn {
+  font-size: 13px;
+  color: #409eff;
+}
+
+.all-loaded-tip {
+  font-size: 12px;
+  color: #909399;
 }
 </style>
