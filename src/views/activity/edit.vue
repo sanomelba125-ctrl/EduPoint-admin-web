@@ -11,6 +11,7 @@ import {
   Warning,
   Position
 } from '@element-plus/icons-vue'
+import ImageUploader from '@/components/ImageUploader.vue'
 import {
   getActivityDetail,
   createActivity,
@@ -535,8 +536,8 @@ function goBack() {
           </el-col>
         </el-row>
 
-        <el-form-item label="活动封面 URL">
-          <el-input v-model="form.coverImage" placeholder="请输入图片网络直链地址（如七牛云 OSS 图片链接）" clearable />
+        <el-form-item label="活动封面图" prop="coverImage">
+          <ImageUploader v-model="form.coverImage" label="活动封面" :preview-size="80" />
         </el-form-item>
 
         <el-form-item label="活动简介">

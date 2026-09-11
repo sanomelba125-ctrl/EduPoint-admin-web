@@ -45,9 +45,9 @@ request.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     const res = response.data
 
-    // 1. 如果响应为二进制文件流 (如导出 Excel/下载附件)，直接返回
+    // 1. 如果响应为二进制文件流 (如导出 Excel/下载附件)，直接返回完整响应对象以便解析 headers 与 Blob
     if (response.config.responseType === 'blob') {
-      return response.data
+      return response as any
     }
 
     // 2. 200 状态码：接口正常成功，解包并返回业务数据 data
