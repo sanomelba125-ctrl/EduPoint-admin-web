@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ArrowLeft,
   Search,
   Aim,
-  Location,
+  RefreshRight,
   CircleCheck,
-  Warning
+  Warning,
+  Position
 } from '@element-plus/icons-vue'
 import {
   getActivityDetail,
@@ -74,15 +75,6 @@ const categoryOptions = [
   { value: 'OTHER', label: '其他拓展' }
 ]
 
-// ──────── 预设校园地点 ────────
-const presetLocations = [
-  { name: '信息学部 401 报告厅', address: '信息学部主楼4层学术报告厅', lng: 118.156821, lat: 24.629104 },
-  { name: '大学生活动中心', address: '大学生活动中心青年广场', lng: 118.154210, lat: 24.628041 },
-  { name: '东区主体育场', address: '东校区主体育场主席台', lng: 118.159330, lat: 24.631220 },
-  { name: '工程训练中心', address: '工程训练中心综合实验楼', lng: 118.152190, lat: 24.626880 },
-  { name: '图书馆报告厅', address: '图书馆A区一层东侧多功能厅', lng: 118.155600, lat: 24.628800 }
-]
-
 // ──────── 高德地图 2.0 选址与打卡点集成 ────────
 const amapInstance = ref<any>(null)
 const markerInstance = ref<any>(null)
@@ -90,53 +82,101 @@ const circleInstance = ref<any>(null)
 const searchKeyword = ref('')
 const searchingPoi = ref(false)
 const locatingCurrent = ref(false)
+const mapLoading = ref(true)
 const mapLoaded = ref(false)
+const mapError = ref<string | null>(null)
+
+// 校验经纬度是否在地球有效数值范围内
+function isValidCoords(lng?: number | null, lat?: number | null): boolean {
+  if (lng === undefined || lng === null || isNaN(lng) || typeof lng !== 'number') return false
+  if (lat === undefined || lat === null || isNaN(lat) || typeof lat !== 'number') return false
+  return lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90
+}
+
+/**
+ * 安全清理地图实例
+ */
+function cleanupMap() {
+  if (markerInstance.value) {
+    try {
+      markerInstance.value.setMap(null)
+    } catch {
+      // ignore
+    }
+    markerInstance.value = null
+  }
+  if (circleInstance.value) {
+    try {
+      circleInstance.value.setMap(null)
+    } catch {
+      // ignore
+    }
+    circleInstance.value = null
+  }
+  if (amapInstance.value) {
+    try {
+      amapInstance.value.destroy()
+    } catch (e) {
+      console.warn('[AMap] destroy error:', e)
+    }
+    amapInstance.value = null
+  }
+  mapLoaded.value = false
+}
 
 /**
  * 初始化高德 2.0 地图实例
  */
 async function initAMap() {
+  mapLoading.value = true
+  mapError.value = null
   await nextTick()
+
   try {
-    const AMap = await loadAMapSDK()
     const container = document.getElementById('amapContainer')
-    if (!container) return
-
-    // 获取初始坐标：已有则用已有的（如活动109），否则取默认基准点
-    const lng = form.longitude || 118.156821
-    const lat = form.latitude || 24.629104
-    const center = [lng, lat]
-
-    if (amapInstance.value) {
-      amapInstance.value.destroy()
+    if (!container) {
+      mapLoading.value = false
+      return
     }
+
+    cleanupMap()
+
+    const AMap = await loadAMapSDK()
+
+    // 确定初始视野中心：优先已配置的打卡点，默认采用校园中心经纬度
+    const hasExistingCoords = isValidCoords(form.longitude, form.latitude)
+    const initLng = hasExistingCoords ? (form.longitude as number) : 118.156821
+    const initLat = hasExistingCoords ? (form.latitude as number) : 24.629104
+    const center = [initLng, initLat]
 
     const map = new AMap.Map('amapContainer', {
       zoom: 16,
       center,
-      resizeEnable: true
+      resizeEnable: true,
+      scrollWheel: true
     })
     amapInstance.value = map
 
-    // 1. 创建红色中心打卡图钉 Marker（可直接拖拽调整）
+    // 1. 创建中心打卡红色图钉 Marker（可拖拽）
     const marker = new AMap.Marker({
       position: center,
       draggable: true,
       cursor: 'move',
-      title: '可直接拖拽调整打卡中心点'
+      title: '按住拖拽以微调打卡点中心'
     })
     marker.setMap(map)
     markerInstance.value = marker
 
-    // 2. 创建半透明核验半径覆盖圆 Circle
+    // 2. 创建打卡核验覆盖半透明圆 Circle
+    const radius = form.locationRadius || 500
     const circle = new AMap.Circle({
       center,
-      radius: form.locationRadius || 500,
+      radius,
       strokeColor: '#409EFF',
       strokeOpacity: 0.85,
       strokeWeight: 2,
       fillColor: '#409EFF',
-      fillOpacity: 0.22
+      fillOpacity: 0.18
     })
     circle.setMap(map)
     circleInstance.value = circle
@@ -144,25 +184,35 @@ async function initAMap() {
     // 3. 拖拽 Marker 松手时，选址并逆地理编码回填
     marker.on('dragend', async (e: any) => {
       const p = e.lnglat
-      await applyPickedLocation(p.getLng(), p.getLat())
+      if (p) {
+        await applyPickedLocation(p.getLng(), p.getLat(), undefined, false)
+      }
     })
 
     // 4. 单击地图任意位置选址并导入打卡点
     map.on('click', async (e: any) => {
       const p = e.lnglat
-      await applyPickedLocation(p.getLng(), p.getLat())
+      if (p) {
+        await applyPickedLocation(p.getLng(), p.getLat(), undefined, false)
+      }
     })
 
     mapLoaded.value = true
+    mapLoading.value = false
   } catch (err: any) {
     console.error('高德地图初始化异常:', err)
+    mapError.value = err?.message || '地图服务加载失败，请检查网络或刷新重试'
+    mapLoading.value = false
   }
 }
 
 /**
  * 选址应用与逆地理编码数据回填
+ * @param showToast 是否显式弹窗提示（默认 false，避免连续微调拖拽时频繁刷屏）
  */
-async function applyPickedLocation(lng: number, lat: number, customName?: string) {
+async function applyPickedLocation(lng: number, lat: number, customName?: string, showToast = false) {
+  if (!isValidCoords(lng, lat)) return
+
   const roundedLng = Number(lng.toFixed(6))
   const roundedLat = Number(lat.toFixed(6))
   form.longitude = roundedLng
@@ -185,12 +235,25 @@ async function applyPickedLocation(lng: number, lat: number, customName?: string
     }
     if (customName) {
       form.locationName = customName
-    } else if (geo.poiName) {
+    } else if (geo.poiName && (!form.locationName || form.locationName.trim() === '')) {
       form.locationName = geo.poiName
     }
-    ElMessage.success(`已选址并导入打卡点：${form.locationName || geo.formattedAddress}`)
+    if (showToast) {
+      ElMessage.success(`已更新打卡点：${form.locationName || geo.formattedAddress || `${roundedLng}, ${roundedLat}`}`)
+    }
   } catch {
-    ElMessage.success(`坐标已更新：(${roundedLng}, ${roundedLat})`)
+    if (showToast) {
+      ElMessage.success(`打卡坐标已更新：(${roundedLng}, ${roundedLat})`)
+    }
+  }
+}
+
+/**
+ * 经纬度输入框手动变更联动
+ */
+function handleManualCoordsChange() {
+  if (isValidCoords(form.longitude, form.latitude)) {
+    applyPickedLocation(form.longitude as number, form.latitude as number, undefined, false)
   }
 }
 
@@ -198,17 +261,21 @@ async function applyPickedLocation(lng: number, lat: number, customName?: string
  * 核验半径实时响应更新
  */
 function updateRadiusCircle(val: number) {
-  if (circleInstance.value) {
+  if (circleInstance.value && typeof val === 'number') {
     circleInstance.value.setRadius(val)
   }
 }
 
 /**
- * 快速选择校园地点
+ * 一键复位地图视野至当前打卡点
  */
-async function setPresetLocation(preset: typeof presetLocations[0]) {
-  await applyPickedLocation(preset.lng, preset.lat, preset.name)
-  form.locationAddress = preset.address
+function recenterMap() {
+  if (isValidCoords(form.longitude, form.latitude) && amapInstance.value) {
+    amapInstance.value.setZoomAndCenter(16, [form.longitude, form.latitude])
+    ElMessage.info('已将地图视野复位至打卡点')
+  } else if (amapInstance.value) {
+    amapInstance.value.setZoomAndCenter(16, [118.156821, 24.629104])
+  }
 }
 
 /**
@@ -224,27 +291,31 @@ async function handleSearchPOI() {
   searchingPoi.value = true
   try {
     const AMap = await loadAMapSDK()
-    const placeSearch = new AMap.PlaceSearch({
-      city: '全国',
-      pageSize: 5
-    })
+    AMap.plugin(['AMap.PlaceSearch'], () => {
+      const placeSearch = new AMap.PlaceSearch({
+        city: '全国',
+        pageSize: 5
+      })
 
-    placeSearch.search(kw, async (status: string, result: any) => {
-      searchingPoi.value = false
-      if (status === 'complete' && result.poiList && result.poiList.pois && result.poiList.pois.length > 0) {
-        const firstPoi = result.poiList.pois[0]
-        const lng = firstPoi.location.getLng()
-        const lat = firstPoi.location.getLat()
-        await applyPickedLocation(lng, lat, firstPoi.name)
-        form.locationAddress = firstPoi.address || firstPoi.name
-        ElMessage.success(`已定位并导入选址：${firstPoi.name}`)
-      } else {
-        ElMessage.warning('未搜索到相关地点，请尝试更精确的名称')
-      }
+      placeSearch.search(kw, async (status: string, result: any) => {
+        searchingPoi.value = false
+        if (status === 'complete' && result.poiList && result.poiList.pois && result.poiList.pois.length > 0) {
+          const firstPoi = result.poiList.pois[0]
+          const lng = firstPoi.location.getLng()
+          const lat = firstPoi.location.getLat()
+          await applyPickedLocation(lng, lat, firstPoi.name, true)
+          form.locationAddress = firstPoi.address || firstPoi.name
+          if (amapInstance.value) {
+            amapInstance.value.setZoom(17)
+          }
+        } else {
+          ElMessage.warning('未搜索到相关地点，请输入更具体的校园或城市地名')
+        }
+      })
     })
   } catch (err: any) {
     searchingPoi.value = false
-    ElMessage.error(err.message || '高德 POI 搜索失败')
+    ElMessage.error(err?.message || '高德 POI 搜索失败')
   }
 }
 
@@ -255,27 +326,38 @@ async function handleLocateCurrent() {
   locatingCurrent.value = true
   try {
     const AMap = await loadAMapSDK()
-    const geolocation = new AMap.Geolocation({
-      enableHighAccuracy: true,
-      timeout: 10000
-    })
+    AMap.plugin(['AMap.Geolocation'], () => {
+      const geolocation = new AMap.Geolocation({
+        enableHighAccuracy: true,
+        timeout: 8000,
+        needAddress: true
+      })
 
-    geolocation.getCurrentPosition(async (status: string, result: any) => {
-      locatingCurrent.value = false
-      if (status === 'complete' && result.position) {
-        const lng = result.position.getLng()
-        const lat = result.position.getLat()
-        await applyPickedLocation(lng, lat)
-        ElMessage.success('已自动导入当前设备位置为活动打卡点')
-      } else {
-        ElMessage.warning('获取设备定位超时，可在地图上直接点击选址')
-      }
+      geolocation.getCurrentPosition(async (status: string, result: any) => {
+        locatingCurrent.value = false
+        if (status === 'complete' && result.position) {
+          const lng = result.position.getLng()
+          const lat = result.position.getLat()
+          const formatted = result.formattedAddress || ''
+          await applyPickedLocation(lng, lat, undefined, true)
+          if (formatted) {
+            form.locationAddress = formatted
+          }
+        } else {
+          ElMessage.warning('未能获取高精度定位，建议在地图中直接点击或通过搜索定位')
+        }
+      })
     })
   } catch (err: any) {
     locatingCurrent.value = false
-    ElMessage.error(err.message || '定位插件调用失败')
+    ElMessage.warning('当前网络环境不支持高精度定位，可在地图上直接点击选址')
   }
 }
+
+// 页面销毁时清理地图
+onBeforeUnmount(() => {
+  cleanupMap()
+})
 
 // ──────── 初始化 ────────
 onMounted(async () => {
@@ -513,7 +595,7 @@ function goBack() {
                 :step="0.0001"
                 placeholder="经度 (Lng)"
                 style="width: 100%;"
-                @change="(val) => val && form.latitude && applyPickedLocation(val, form.latitude)"
+                @change="handleManualCoordsChange"
               />
             </el-form-item>
           </el-col>
@@ -525,7 +607,7 @@ function goBack() {
                 :step="0.0001"
                 placeholder="纬度 (Lat)"
                 style="width: 100%;"
-                @change="(val) => val && form.longitude && applyPickedLocation(form.longitude, val)"
+                @change="handleManualCoordsChange"
               />
             </el-form-item>
           </el-col>
@@ -543,58 +625,66 @@ function goBack() {
           </el-col>
         </el-row>
 
-        <!-- 预设校园地点快捷选址 -->
-        <el-form-item label="校园快捷打卡点">
-          <div class="preset-btns">
-            <el-button
-              v-for="loc in presetLocations"
-              :key="loc.name"
-              size="small"
-              plain
-              @click="setPresetLocation(loc)"
-            >
-              <el-icon><Location /></el-icon>
-              {{ loc.name }}
-            </el-button>
-          </div>
-        </el-form-item>
-
-        <!-- 高德地图选址交互工具栏 -->
-        <el-form-item label="地图选址交互">
+        <!-- 高德地图智能选址工作台 -->
+        <el-form-item label="地图智能选址">
           <div class="amap-wrapper">
+            <!-- 工具操作栏 -->
             <div class="amap-toolbar">
               <div class="search-input-group">
                 <el-input
                   v-model="searchKeyword"
-                  placeholder="搜索校园大楼、场馆或地名（按回车或点搜索直接导入）"
+                  placeholder="搜索目标地点（如：行政楼主楼、青年广场、图书馆等），按回车定位"
                   clearable
                   @keyup.enter="handleSearchPOI"
                 >
                   <template #append>
                     <el-button :loading="searchingPoi" :icon="Search" @click="handleSearchPOI">
-                      高德选址导入
+                      搜索定位
                     </el-button>
                   </template>
                 </el-input>
               </div>
 
-              <el-button type="success" plain :icon="Aim" :loading="locatingCurrent" @click="handleLocateCurrent">
-                导入当前设备定位
-              </el-button>
+              <div class="toolbar-actions">
+                <el-button type="primary" plain :icon="Aim" :loading="locatingCurrent" @click="handleLocateCurrent">
+                  定位当前设备
+                </el-button>
+                <el-button plain :icon="RefreshRight" @click="recenterMap" title="将地图视角对准当前打卡标记">
+                  复位中心
+                </el-button>
+              </div>
             </div>
 
-            <!-- 高德地图 2.0 容器 -->
+            <!-- 高德地图 2.0 容器与交互层 -->
             <div class="map-container-box">
               <div id="amapContainer" class="amap-dom"></div>
 
-              <!-- 覆盖提示小浮条 -->
-              <div class="map-status-overlay">
-                <div class="overlay-row">
+              <!-- 加载中态 -->
+              <div v-if="mapLoading" class="map-loading-mask">
+                <el-icon class="is-loading" :size="28" color="#409EFF"><Position /></el-icon>
+                <span class="loading-text">高德地图 2.0 空间引擎加载中...</span>
+              </div>
+
+              <!-- 加载失败容错态 -->
+              <div v-else-if="mapError" class="map-error-mask">
+                <el-icon :size="32" color="#f56c6c"><Warning /></el-icon>
+                <span class="error-msg">{{ mapError }}</span>
+                <el-button type="primary" size="small" @click="initAMap">重新载入地图</el-button>
+              </div>
+
+              <!-- 悬浮状态指示栏 -->
+              <div v-if="mapLoaded" class="map-status-overlay">
+                <div class="overlay-left">
                   <el-icon color="#67c23a"><CircleCheck /></el-icon>
-                  <span><strong>已绑定打卡坐标：</strong>{{ form.longitude || '-' }}, {{ form.latitude || '-' }}</span>
+                  <span class="coord-tag">
+                    <strong>打卡坐标：</strong>{{ form.longitude !== undefined && form.longitude !== null ? `${form.longitude}, ${form.latitude}` : '未选择 (请点击地图选址)' }}
+                  </span>
+                  <span v-if="form.locationRadius" class="radius-tag">
+                    (有效半径 {{ form.locationRadius }} 米)
+                  </span>
                 </div>
-                <div class="overlay-row hint">
-                  <span>💡 提示：点击地图任意位置或拖拽红色图钉，即可自动导入打卡点并反查地址</span>
+                <div class="overlay-right">
+                  <span>💡 提示：在地图上任意点击或拖动红色图钉，即可精准导入打卡点并自动解析地址</span>
                 </div>
               </div>
             </div>
@@ -702,40 +792,43 @@ function goBack() {
   justify-content: space-between;
 }
 
-.preset-btns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* 高德地图 2.0 选址区域 */
+/* 高德地图 2.0 智能选址工作台 */
 .amap-wrapper {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .amap-toolbar {
-  padding: 12px 14px;
+  padding: 12px 16px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
 }
 
 .search-input-group {
   flex: 1;
-  min-width: 280px;
+  min-width: 320px;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .map-container-box {
   position: relative;
   width: 100%;
-  height: 380px;
+  height: 420px;
+  background-color: #f1f5f9;
 }
 
 .amap-dom {
@@ -743,32 +836,87 @@ function goBack() {
   height: 100%;
 }
 
+/* 地图加载态遮罩 */
+.map-loading-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 10;
+}
+
+.loading-text {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+/* 地图异常遮罩 */
+.map-error-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  z-index: 10;
+}
+
+.error-msg {
+  color: #e11d48;
+  font-size: 13px;
+  max-width: 360px;
+}
+
+/* 底部状态悬浮条 */
 .map-status-overlay {
   position: absolute;
   bottom: 12px;
   left: 12px;
   right: 12px;
   background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 8px 14px;
   font-size: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   pointer-events: none;
+  z-index: 5;
 }
 
-.overlay-row {
+.overlay-left {
   display: flex;
   align-items: center;
   gap: 6px;
   color: #1e293b;
 }
 
-.overlay-row.hint {
+.coord-tag {
+  font-family: 'Consolas', monospace;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.radius-tag {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.overlay-right {
   color: #64748b;
   font-size: 11px;
 }
