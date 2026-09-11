@@ -410,6 +410,21 @@ async function handleSubmit() {
     return
   }
 
+  if (form.locationCheckEnabled === 1) {
+    if (!form.locationName?.trim() || !form.locationAddress?.trim()) {
+      ElMessage.warning('开启定位核验时，请配置打卡场地名称和详细地址')
+      return
+    }
+    if (!isValidCoords(form.longitude, form.latitude)) {
+      ElMessage.warning('开启定位核验时，请在地图上选择有效的打卡坐标')
+      return
+    }
+    if (!form.locationRadius || form.locationRadius < 50) {
+      ElMessage.warning('开启定位核验时，打卡半径不能小于 50 米')
+      return
+    }
+  }
+
   submitting.value = true
   try {
     if (isEdit.value && activityId.value) {
@@ -574,7 +589,7 @@ function goBack() {
           </div>
         </template>
 
-        <el-row :gutter="20">
+        <el-row :gutter="20" class="map-location-row">
           <el-col :span="12">
             <el-form-item label="打卡场地名称">
               <el-input v-model="form.locationName" placeholder="例：信息学部 401 报告厅" clearable />
@@ -587,7 +602,7 @@ function goBack() {
           </el-col>
         </el-row>
 
-        <el-row :gutter="20">
+        <el-row :gutter="20" class="map-coords-row">
           <el-col :span="8">
             <el-form-item label="打卡中心经度">
               <el-input-number
@@ -828,16 +843,23 @@ function goBack() {
 
 /* 高德地图 2.0 智能选址工作台（通栏布局） */
 .map-section-block {
-  margin-top: 6px;
-  margin-bottom: 8px;
+  margin-top: 10px;
+  margin-bottom: 4px;
   width: 100%;
 }
 
 .map-section-header {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+/* 地图相关字段在中等宽度下改为纵向分区，避免长标签和输入控件互相挤压 */
+.map-location-row,
+.map-coords-row {
+  row-gap: 4px;
 }
 
 .map-title-label {
@@ -863,14 +885,13 @@ function goBack() {
 
 .amap-toolbar {
   width: 100%;
-  padding: 10px 16px;
+  padding: 12px 16px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto minmax(max-content, auto);
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px 16px;
   box-sizing: border-box;
 }
 
@@ -878,9 +899,8 @@ function goBack() {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  min-width: 260px;
-  max-width: 400px;
+  min-width: 0;
+  width: 100%;
   box-sizing: border-box;
 }
 
@@ -897,29 +917,131 @@ function goBack() {
   width: 1px;
   height: 22px;
   background-color: #cbd5e1;
-  margin: 0 4px;
+  margin: 0;
 }
 
 .toolbar-actions-zone {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
   white-space: nowrap;
   box-sizing: border-box;
 }
 
+.toolbar-actions-zone .el-button {
+  flex: 0 0 auto;
+  min-width: 132px;
+}
+
+.toolbar-actions-zone .el-button + .el-button {
+  margin-left: 0;
+}
+
 @media (max-width: 900px) {
+  .amap-toolbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
   .toolbar-divider {
     display: none;
   }
   .toolbar-search-zone {
-    max-width: 100%;
-    min-width: 100%;
+    width: 100%;
   }
   .toolbar-actions-zone {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: flex-end;
+    padding-top: 2px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .map-location-row :deep(.el-col) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .map-coords-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+  }
+
+  .map-coords-row :deep(.el-col) {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .amap-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .toolbar-actions-zone {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .map-location-row,
+  .map-coords-row {
+    row-gap: 0;
+  }
+
+  .map-coords-row {
+    display: block;
+  }
+
+  .map-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .map-title-sub {
+    line-height: 1.5;
+  }
+
+  .amap-toolbar {
+    padding: 10px 12px;
+  }
+
+  .toolbar-search-zone {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-search {
+    width: 100%;
+  }
+
+  .toolbar-actions-zone {
+    justify-content: stretch;
+  }
+
+  .toolbar-actions-zone .el-button {
+    flex: 1;
+  }
+
+  .map-container-box {
+    height: min(58vh, 420px);
+    min-height: 300px;
+  }
+
+  .map-status-overlay {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    padding: 8px 10px;
+  }
+
+  .overlay-left,
+  .overlay-right {
+    width: 100%;
+  }
+
+  .overlay-right {
+    line-height: 1.4;
   }
 }
 
@@ -1002,6 +1124,8 @@ function goBack() {
 .overlay-left {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 6px;
   color: #1e293b;
 }
@@ -1010,6 +1134,7 @@ function goBack() {
   font-family: 'Consolas', monospace;
   font-size: 12px;
   color: #0f172a;
+  overflow-wrap: anywhere;
 }
 
 .radius-tag {
@@ -1020,6 +1145,8 @@ function goBack() {
 .overlay-right {
   color: #64748b;
   font-size: 11px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* 底部操作栏 */
