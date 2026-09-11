@@ -81,18 +81,34 @@ const router = createRouter({
   routes
 })
 
-// 简单路由守卫
-router.beforeEach((to, _from, next) => {
+import { useUserStore } from '@/store/user'
+import { getCurrentUserApi } from '@/api/auth'
+
+// 权限路由守卫：防止未登录访问或伪造/过期Token假登录
+router.beforeEach(async (to, _from, next) => {
   if (to.meta.title) {
     document.title = `${to.meta.title} - 学生活动打卡与积分管理系统`
   }
   const token = localStorage.getItem('admin_token')
-  if (!token && to.path !== '/login') {
-    next('/login')
-  } else if (token && to.path === '/login') {
-    next('/dashboard')
-  } else {
+  if (!token) {
+    return to.path === '/login' ? next() : next('/login')
+  }
+  if (to.path === '/login') {
+    return next('/dashboard')
+  }
+
+  const userStore = useUserStore()
+  if (userStore.userInfo) {
+    return next()
+  }
+
+  try {
+    const user = await getCurrentUserApi()
+    userStore.setUserInfo(user)
     next()
+  } catch {
+    userStore.logout()
+    next('/login')
   }
 })
 
