@@ -270,7 +270,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="dashboard" v-loading="loading">
+  <div v-loading="loading" class="dashboard">
     <!-- 头部工具栏 -->
     <div class="dashboard-header">
       <div class="header-left">
@@ -278,8 +278,8 @@ onUnmounted(() => {
         <span class="page-sub">实时汇聚全校活动参与、签到核销与积分流转核心指标</span>
       </div>
       <div class="header-right">
-        <span class="update-hint" v-if="lastUpdatedTime">上次更新: {{ lastUpdatedTime }}</span>
-        <el-button type="primary" :icon="Refresh" plain size="small" @click="loadDashboardData" :loading="loading">
+        <span v-if="lastUpdatedTime" class="update-hint">上次更新: {{ lastUpdatedTime }}</span>
+        <el-button type="primary" :icon="Refresh" plain size="small" :loading="loading" @click="loadDashboardData">
           刷新实时数据
         </el-button>
       </div>
@@ -287,7 +287,7 @@ onUnmounted(() => {
 
     <!-- 1. 核心 KPI 统计卡片区 -->
     <el-row :gutter="16" class="stat-row">
-      <el-col :xs="24" :sm="12" :md="6" v-for="item in statCards" :key="item.title">
+      <el-col v-for="item in statCards" :key="item.title" :xs="24" :sm="12" :md="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
             <div class="stat-info">

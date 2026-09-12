@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   Search,
   Refresh,
@@ -26,8 +26,9 @@ import {
 
 import { usePageList } from '@/hooks/usePageList'
 
-// 组合搜索词
+// 组合搜索词与检索维度
 const searchKeyword = ref('')
+const searchField = ref<'all' | 'pickupCode' | 'orderNo' | 'studentName' | 'studentNo'>('all')
 
 // 列表与分页状态及检索
 const {
@@ -49,17 +50,31 @@ const {
   },
   fetcher: (params) => {
     const kw = searchKeyword.value.trim()
-    let pickupCode: string | undefined = undefined
-    let orderNo: string | undefined = undefined
-    let studentName: string | undefined = undefined
+    let pickupCode: string | undefined
+    let orderNo: string | undefined
+    let studentName: string | undefined
+    let studentNo: string | undefined
 
     if (kw) {
-      if (kw.toUpperCase().startsWith('PK') || /^[A-Za-z0-9]{6,8}$/.test(kw)) {
+      if (searchField.value === 'pickupCode') {
         pickupCode = kw
-      } else if (kw.toUpperCase().startsWith('ORD')) {
+      } else if (searchField.value === 'orderNo') {
         orderNo = kw
-      } else {
+      } else if (searchField.value === 'studentName') {
         studentName = kw
+      } else if (searchField.value === 'studentNo') {
+        studentNo = kw
+      } else {
+        // 智能识别匹配：仅构造局部参数，绝不回写污染全局 queryParams
+        if (kw.toUpperCase().startsWith('PK')) {
+          pickupCode = kw
+        } else if (kw.toUpperCase().startsWith('ORD')) {
+          orderNo = kw
+        } else if (/^\d{8,12}$/.test(kw)) {
+          studentNo = kw
+        } else {
+          studentName = kw
+        }
       }
     }
 
@@ -67,13 +82,15 @@ const {
       ...params,
       pickupCode,
       orderNo,
-      studentName
+      studentName,
+      studentNo
     })
   }
 })
 
 const handleReset = () => {
   searchKeyword.value = ''
+  searchField.value = 'all'
   resetOrderFilters()
   fetchMetrics()
 }
@@ -144,10 +161,9 @@ const doSearchPickupCode = () => {
   if (found) {
     matchedOrder.value = found
   } else {
-    // 列表若没查到，通过关键词快速请求后端
+    // 列表若没查到，通过关键词快速请求后端（使用独立参数对象，绝不动 queryParams）
     matchedOrder.value = null
     ElMessage.info('正在全库查询该提货码...')
-    queryParams.pickupCode = code
     getGiftOrderList({ page: 1, size: 1, pickupCode: code }).then((res: any) => {
       const records = res?.records || (Array.isArray(res) ? res : [])
       if (records.length > 0) {
@@ -264,14 +280,24 @@ const handleConfirmCancel = async () => {
     <!-- 筛选面板 -->
     <el-card shadow="never" class="filter-card">
       <el-form :inline="true" class="filter-form">
-        <el-form-item label="检索订单">
+        <el-form-item label="订单检索">
           <el-input
             v-model="searchKeyword"
-            placeholder="输入学号 / 姓名 / 提货码 / 订单号..."
+            placeholder="输入检索关键词..."
             clearable
+            style="width: 380px;"
             @keyup.enter="handleSearch"
-            style="width: 280px;"
-          />
+          >
+            <template #prepend>
+              <el-select v-model="searchField" style="width: 110px;" @change="handleSearch">
+                <el-option label="智能匹配" value="all" />
+                <el-option label="提货码" value="pickupCode" />
+                <el-option label="订单号" value="orderNo" />
+                <el-option label="学生姓名" value="studentName" />
+                <el-option label="学生学号" value="studentNo" />
+              </el-select>
+            </template>
+          </el-input>
         </el-form-item>
 
         <el-form-item label="履约状态">
@@ -330,7 +356,7 @@ const handleConfirmCancel = async () => {
         <el-table-column label="兑换礼品" min-width="180">
           <template #default="{ row }">
             <div class="gift-name">{{ row.giftName || '礼品' }}</div>
-            <div class="sub-text" v-if="row.receiverPhone">联系方式: {{ row.receiverPhone }}</div>
+            <div v-if="row.receiverPhone" class="sub-text">联系方式: {{ row.receiverPhone }}</div>
           </template>
         </el-table-column>
 
@@ -615,7 +641,7 @@ const handleConfirmCancel = async () => {
 }
 
 .filter-card, .table-card {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .filter-form {

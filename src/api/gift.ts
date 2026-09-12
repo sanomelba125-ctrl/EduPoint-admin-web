@@ -42,7 +42,7 @@ export interface GiftUpdateDTO {
 export interface GiftQuery extends PageQuery {
   name?: string
   keyword?: string
-  status?: number
+  status?: number | string
 }
 
 export interface StudentGiftVO {
@@ -75,7 +75,8 @@ export interface GiftOrderQuery extends PageQuery {
   orderNo?: string
   pickupCode?: string
   studentName?: string
-  status?: number
+  studentNo?: string
+  status?: number | string
 }
 
 export interface DeliveryConfirmDTO {
