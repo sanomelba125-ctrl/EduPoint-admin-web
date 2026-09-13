@@ -5,6 +5,12 @@ const ws = ref<WebSocket | null>(null)
 const isConnected = ref(false)
 let reconnectTimer: any = null
 
+/**
+ * 子协议标记，必须与后端 WebSocketConstants.PROTOCOL_MARKER 保持一致。
+ * 浏览器 WebSocket 无法自定义请求头，因此用 [标记, token] 两个子协议把登录凭据带给服务端。
+ */
+const WS_SUB_PROTOCOL_MARKER = 'satoken'
+
 type MessageListener = (data: any) => void
 const messageListeners = new Set<MessageListener>()
 
@@ -23,11 +29,18 @@ export function useWebSocket() {
       return
     }
 
+    // 握手必须携带登录凭据，缺失时直接跳过，避免反复发起必然被拒绝的连接
+    const token = localStorage.getItem('admin_token')
+    if (!token) {
+      console.warn('[WebSocket] 未获取到登录凭据，跳过连接')
+      return
+    }
+
     const host = window.location.hostname || 'localhost'
     const wsUrl = `ws://${host}:8080/api/ws/${userType}/${userId}`
 
     try {
-      ws.value = new WebSocket(wsUrl)
+      ws.value = new WebSocket(wsUrl, [WS_SUB_PROTOCOL_MARKER, token])
     } catch (err) {
       console.warn('[WebSocket] 创建连接失败:', err)
       scheduleReconnect(userType, userId)
