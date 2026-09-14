@@ -104,13 +104,6 @@ const handleLogin = async () => {
           {{ loading ? '身份鉴权中...' : '安全登录系统' }}
         </el-button>
       </el-form>
-
-      <!-- 业务安全规约说明卡片 -->
-      <div class="auth-alert-box">
-        <strong>安全规约说明：</strong><br />
-        管理端采用独立权限隔离策略，与移动端学生 Token 严格隔离。登录凭证有效期 2 小时，所有接口请求均受 Spring Security RBAC 鉴权保护并审计留痕。
-      </div>
-
     </div>
   </div>
 </template>
@@ -194,20 +187,5 @@ const handleLogin = async () => {
   letter-spacing: 0.5px;
   margin-top: 8px;
   border-radius: 4px;
-}
-
-.auth-alert-box {
-  margin-top: 22px;
-  padding: 12px;
-  background: #f4f4f5;
-  border: 1px solid #e9e9eb;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #909399;
-  line-height: 1.6;
-}
-
-.auth-alert-box strong {
-  color: #303133;
 }
 </style>

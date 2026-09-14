@@ -28,7 +28,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const { connect, disconnect, isConnected } = useWebSocket()
 
-const menuItems = buildMenuItems()
+const menuItems = computed(() => buildMenuItems(userStore.userInfo?.role))
 
 const activeMenu = computed(() => {
   if (route.meta?.activeMenu) {

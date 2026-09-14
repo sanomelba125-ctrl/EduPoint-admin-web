@@ -102,8 +102,6 @@ const handleSubmit = async () => {
           name: formData.name,
           pointsCost: formData.pointsCost,
           pointsRequired: formData.pointsCost,
-          stock: formData.stock,
-          totalStock: formData.stock,
           description: formData.description,
           image: formData.image,
           status: formData.status
@@ -350,14 +348,18 @@ const handleDelete = async (row: GiftVO) => {
           />
         </el-form-item>
 
-        <el-form-item label="初始可用库存" prop="stock">
+        <el-form-item :label="isEdit ? '当前实时库存' : '初始可用库存'" prop="stock">
           <el-input-number
             v-model="formData.stock"
             :min="0"
             :step="10"
+            :disabled="isEdit"
             style="width: 100%;"
             controls-position="right"
           />
+          <div v-if="isEdit" style="font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4;">
+            💡 实时库存由前台兑换与核销动态扣减与回退。修改礼品基本信息不变更当前库存。
+          </div>
         </el-form-item>
 
         <el-form-item label="礼品封面照片" prop="image">
