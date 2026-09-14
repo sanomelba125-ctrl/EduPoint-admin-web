@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Search,
@@ -15,10 +15,8 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getActivityRecordList,
-  getActivityRecordMetrics,
   type StudentActivityRecordVO,
-  type ActivityRecordQuery,
-  type ActivityRecordMetricsVO
+  type ActivityRecordQuery
 } from '@/api/activity'
 
 // 详情弹窗
@@ -60,33 +58,20 @@ const {
   }
 })
 
-// 全局业务统计指标（由后端直接统计全量数据，避免当前页10条失真）
-const metrics = ref<ActivityRecordMetricsVO>({
-  totalRecords: 0,
-  completedCount: 0,
-  pendingCount: 0,
-  cancelledCount: 0,
-  pointsDistributed: 0
-})
-
-const fetchMetrics = async () => {
-  try {
-    const res = await getActivityRecordMetrics()
-    if (res) {
-      metrics.value = res
-    }
-  } catch (err) {
-    console.error('获取打卡全局统计指标失败', err)
+// 业务统计指标：严格遵循 API.md 规范，基于已有的全量记录总数与当前记录数据进行统计，严禁调用未定义接口
+const metrics = computed(() => {
+  const list = recordList.value || []
+  return {
+    totalRecords: total.value || 0,
+    completedCount: list.filter((r) => r.status === 2).length,
+    pendingCount: list.filter((r) => r.status === 1).length,
+    cancelledCount: list.filter((r) => r.status === 3).length,
+    pointsDistributed: list.filter((r) => r.status === 2).reduce((sum, r) => sum + (r.pointsAwarded || 0), 0)
   }
-}
-
-onMounted(() => {
-  fetchMetrics()
 })
 
 const handleRefreshAll = () => {
   fetchRecords()
-  fetchMetrics()
 }
 
 

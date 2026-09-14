@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { useWebSocket, onWsMessage } from '@/hooks/useWebSocket'
 import {
-  Calendar,
   Fold,
   Expand,
   SwitchButton,

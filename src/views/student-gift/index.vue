@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search,
   Refresh,
@@ -16,21 +16,18 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getGiftOrderList,
-  getGiftOrderMetrics,
   confirmDelivery,
   cancelGiftOrder,
   type StudentGiftVO,
   type GiftOrderQuery,
   type DeliveryConfirmDTO,
-  type OrderCancelDTO,
-  type GiftOrderMetricsVO
+  type OrderCancelDTO
 } from '@/api/gift'
 
 import { usePageList } from '@/hooks/usePageList'
 
-// 组合搜索词与检索维度
+// 组合搜索词
 const searchKeyword = ref('')
-const searchField = ref<'all' | 'pickupCode' | 'orderNo' | 'studentName' | 'studentNo'>('all')
 
 // 列表与分页状态及检索
 const {
@@ -52,31 +49,17 @@ const {
   },
   fetcher: (params) => {
     const kw = searchKeyword.value.trim()
-    let pickupCode: string | undefined
-    let orderNo: string | undefined
-    let studentName: string | undefined
-    let studentNo: string | undefined
+    let pickupCode: string | undefined = undefined
+    let orderNo: string | undefined = undefined
+    let studentName: string | undefined = undefined
 
     if (kw) {
-      if (searchField.value === 'pickupCode') {
+      if (kw.toUpperCase().startsWith('PK') || /^[A-Za-z0-9]{6,8}$/.test(kw)) {
         pickupCode = kw
-      } else if (searchField.value === 'orderNo') {
+      } else if (kw.toUpperCase().startsWith('ORD')) {
         orderNo = kw
-      } else if (searchField.value === 'studentName') {
-        studentName = kw
-      } else if (searchField.value === 'studentNo') {
-        studentNo = kw
       } else {
-        // 智能识别匹配：仅构造局部参数，绝不回写污染全局 queryParams
-        if (kw.toUpperCase().startsWith('PK')) {
-          pickupCode = kw
-        } else if (kw.toUpperCase().startsWith('ORD')) {
-          orderNo = kw
-        } else if (/^\d{8,12}$/.test(kw)) {
-          studentNo = kw
-        } else {
-          studentName = kw
-        }
+        studentName = kw
       }
     }
 
@@ -84,42 +67,15 @@ const {
       ...params,
       pickupCode,
       orderNo,
-      studentName,
-      studentNo
+      studentName
     })
   }
 })
 
 const handleReset = () => {
   searchKeyword.value = ''
-  searchField.value = 'all'
   resetOrderFilters()
-  fetchMetrics()
 }
-
-// 全局业务统计指标（由后端直接统计全量数据，避免当前页10条失真）
-const metrics = ref<GiftOrderMetricsVO>({
-  totalCount: 0,
-  pendingCount: 0,
-  completedCount: 0,
-  cancelledCount: 0,
-  totalPoints: 0
-})
-
-const fetchMetrics = async () => {
-  try {
-    const res = await getGiftOrderMetrics()
-    if (res) {
-      metrics.value = res
-    }
-  } catch (err) {
-    console.error('获取礼品订单全局统计指标失败', err)
-  }
-}
-
-onMounted(() => {
-  fetchMetrics()
-})
 
 // 提货码现场核销弹窗
 const verifyModalVisible = ref(false)
@@ -163,9 +119,10 @@ const doSearchPickupCode = () => {
   if (found) {
     matchedOrder.value = found
   } else {
-    // 列表若没查到，通过关键词快速请求后端（使用独立参数对象，绝不动 queryParams）
+    // 列表若没查到，通过关键词快速请求后端
     matchedOrder.value = null
     ElMessage.info('正在全库查询该提货码...')
+    queryParams.pickupCode = code
     getGiftOrderList({ page: 1, size: 1, pickupCode: code }).then((res: any) => {
       const records = res?.records || (Array.isArray(res) ? res : [])
       if (records.length > 0) {
@@ -195,7 +152,6 @@ const handleConfirmVerify = async () => {
     ElMessage.success(`订单 #${matchedOrder.value.orderNo} 提货核销成功！`)
     verifyModalVisible.value = false
     fetchOrders()
-    fetchMetrics()
   } catch (err: any) {
     ElMessage.error(err.message || '核销失败')
   } finally {
@@ -224,7 +180,6 @@ const handleConfirmCancel = async () => {
     ElMessage.success('订单已成功取消，积分已原路退回学生账户')
     cancelModalVisible.value = false
     fetchOrders()
-    fetchMetrics()
   } catch (err: any) {
     ElMessage.error(err.message || '取消订单失败')
   } finally {
@@ -236,70 +191,17 @@ const handleConfirmCancel = async () => {
 
 <template>
   <div class="gift-order-page">
-    <!-- 统计卡片面板 -->
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-info">
-          <span class="metric-title">全量兑换订单</span>
-          <div class="metric-number">{{ metrics.totalCount }} <span class="metric-unit">单</span></div>
-        </div>
-        <div class="metric-icon-box primary">
-          <el-icon><Tickets /></el-icon>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-info">
-          <span class="metric-title">待现场提货 (PENDING)</span>
-          <div class="metric-number warning">{{ metrics.pendingCount }} <span class="metric-unit">单</span></div>
-        </div>
-        <div class="metric-icon-box warning">
-          <el-icon><Timer /></el-icon>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-info">
-          <span class="metric-title">已核销出库 (COMPLETED)</span>
-          <div class="metric-number success">{{ metrics.completedCount }} <span class="metric-unit">单</span></div>
-        </div>
-        <div class="metric-icon-box success">
-          <el-icon><CircleCheck /></el-icon>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-info">
-          <span class="metric-title">全量消耗积分</span>
-          <div class="metric-number">{{ metrics.totalPoints }} <span class="metric-unit">pts</span></div>
-        </div>
-        <div class="metric-icon-box info">
-          <el-icon><Coin /></el-icon>
-        </div>
-      </div>
-    </div>
-
     <!-- 筛选面板 -->
     <el-card shadow="never" class="filter-card">
       <el-form :inline="true" class="filter-form">
-        <el-form-item label="订单检索">
+        <el-form-item label="检索订单">
           <el-input
             v-model="searchKeyword"
-            placeholder="输入检索关键词..."
+            placeholder="输入学号 / 姓名 / 提货码 / 订单号..."
             clearable
-            style="width: 380px;"
             @keyup.enter="handleSearch"
-          >
-            <template #prepend>
-              <el-select v-model="searchField" style="width: 110px;" @change="handleSearch">
-                <el-option label="智能匹配" value="all" />
-                <el-option label="提货码" value="pickupCode" />
-                <el-option label="订单号" value="orderNo" />
-                <el-option label="学生姓名" value="studentName" />
-                <el-option label="学生学号" value="studentNo" />
-              </el-select>
-            </template>
-          </el-input>
+            style="width: 280px;"
+          />
         </el-form-item>
 
         <el-form-item label="履约状态">
@@ -358,7 +260,7 @@ const handleConfirmCancel = async () => {
         <el-table-column label="兑换礼品" min-width="180">
           <template #default="{ row }">
             <div class="gift-name">{{ row.giftName || '礼品' }}</div>
-            <div v-if="row.receiverPhone" class="sub-text">联系方式: {{ row.receiverPhone }}</div>
+            <div class="sub-text" v-if="row.receiverPhone">联系方式: {{ row.receiverPhone }}</div>
           </template>
         </el-table-column>
 
@@ -604,80 +506,8 @@ const handleConfirmCancel = async () => {
   gap: 16px;
 }
 
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.metric-card {
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid var(--el-border-color-lighter);
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.metric-title {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.metric-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  margin-top: 4px;
-}
-
-.metric-number.warning {
-  color: var(--el-color-warning);
-}
-
-.metric-number.success {
-  color: var(--el-color-success);
-}
-
-.metric-unit {
-  font-size: 13px;
-  font-weight: normal;
-  color: var(--el-text-color-secondary);
-}
-
-.metric-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-}
-
-.metric-icon-box.primary {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-}
-
-.metric-icon-box.warning {
-  background: var(--el-color-warning-light-9);
-  color: var(--el-color-warning);
-}
-
-.metric-icon-box.success {
-  background: var(--el-color-success-light-9);
-  color: var(--el-color-success);
-}
-
-.metric-icon-box.info {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-}
-
 .filter-card, .table-card {
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .filter-form {
