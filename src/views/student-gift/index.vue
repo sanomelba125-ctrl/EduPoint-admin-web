@@ -10,7 +10,9 @@ import {
   Timer,
   CircleCheck,
   Coin,
-  Key
+  Key,
+  Document,
+  CircleClose
 } from '@element-plus/icons-vue'
 import {
   getGiftOrderList,
@@ -390,6 +392,26 @@ const handleConfirmCancel = async () => {
           </template>
         </el-table-column>
 
+        <el-table-column label="签收备注 / 履约说明" min-width="170">
+          <template #default="{ row }">
+            <div v-if="row.status === 2">
+              <span v-if="row.remark" class="remark-text-cell" :title="row.remark">
+                <el-icon><Document /></el-icon>
+                <span>{{ row.remark }}</span>
+              </span>
+              <span v-else class="sub-text text-muted">已核销 (无签收备注)</span>
+            </div>
+            <div v-else-if="row.status === 3">
+              <span v-if="row.cancelReason" class="cancel-reason-cell" :title="row.cancelReason">
+                <el-icon><CircleClose /></el-icon>
+                <span>退单: {{ row.cancelReason }}</span>
+              </span>
+              <span v-else class="sub-text text-muted">已取消 (无原因说明)</span>
+            </div>
+            <span v-else class="sub-text text-muted">待现场核销录入</span>
+          </template>
+        </el-table-column>
+
         <el-table-column label="核销/取消时间" width="170">
           <template #default="{ row }">
             <span class="sub-text">
@@ -504,6 +526,20 @@ const handleConfirmCancel = async () => {
           placeholder="现场发放备注 (可选)"
           style="margin-top: 12px;"
         />
+
+        <div v-if="matchedOrder.status === 2" class="completed-info-box">
+          <div v-if="matchedOrder.deliveryTime">
+            <span class="label">核销时间：</span>
+            <span>{{ matchedOrder.deliveryTime }}</span>
+          </div>
+          <div v-if="matchedOrder.remark">
+            <span class="label">签收备注：</span>
+            <span class="val">{{ matchedOrder.remark }}</span>
+          </div>
+          <div v-else class="text-muted">
+            （现场核销时未填写额外签收备注）
+          </div>
+        </div>
 
         <div v-if="matchedOrder.status === 1" class="res-alert">
           核销确认后，订单状态将变更为【已提货 COMPLETED】，扣减实物库存并记入履约审计日志。
@@ -771,5 +807,59 @@ const handleConfirmCancel = async () => {
   flex-direction: column;
   gap: 4px;
   margin-top: 8px;
+}
+
+.remark-text-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success-dark-2);
+  border: 1px solid var(--el-color-success-light-8);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cancel-reason-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  border: 1px solid var(--el-color-danger-light-8);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-muted {
+  color: var(--el-text-color-placeholder);
+}
+
+.completed-info-box {
+  background: var(--el-color-success-light-9);
+  border: 1px solid var(--el-color-success-light-8);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-primary);
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.completed-info-box .label {
+  color: var(--el-color-success-dark-2);
+  font-weight: 600;
 }
 </style>
