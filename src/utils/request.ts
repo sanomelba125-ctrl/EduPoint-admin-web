@@ -12,9 +12,9 @@ export interface ApiResponse<T = any> {
   timestamp: number
 }
 
-// 创建 axios 实例
+// 创建 axios 实例：优先读取环境变量中配置的后端服务地址，支持直连后端(如 http://localhost:8080/api)或通过 Vite/Nginx 代理(/api)
 const request: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: (import.meta.env.VITE_API_BASE_URL as string) || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
