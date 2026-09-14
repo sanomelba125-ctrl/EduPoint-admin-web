@@ -19,6 +19,14 @@ declare global {
 }
 
 let amapLoadPromise: Promise<any> | null = null
+const AMAP_PLUGINS = ['AMap.Geolocation', 'AMap.Geocoder', 'AMap.AutoComplete', 'AMap.PlaceSearch', 'AMap.Circle']
+
+function ensureAMapPlugins(AMap: any): Promise<any> {
+  if (!AMap?.plugin) return Promise.resolve(AMap)
+  return new Promise((resolve) => {
+    AMap.plugin(AMAP_PLUGINS, () => resolve(AMap))
+  })
+}
 
 /**
  * 确保高德地图 2.0 SDK 注入安全密钥并完成异步加载
@@ -29,7 +37,7 @@ export function loadAMapSDK(): Promise<any> {
   }
 
   if (window.AMap && window.AMap.Map) {
-    return Promise.resolve(window.AMap)
+    return ensureAMapPlugins(window.AMap)
   }
 
   if (amapLoadPromise) {
@@ -43,16 +51,7 @@ export function loadAMapSDK(): Promise<any> {
     }
 
     if (window.AMap) {
-      if (window.AMap.plugin) {
-        window.AMap.plugin(
-          ['AMap.Geolocation', 'AMap.Geocoder', 'AMap.AutoComplete', 'AMap.PlaceSearch', 'AMap.Circle'],
-          () => {
-            resolve(window.AMap)
-          }
-        )
-      } else {
-        resolve(window.AMap)
-      }
+      ensureAMapPlugins(window.AMap).then(resolve)
       return
     }
 
@@ -63,8 +62,9 @@ export function loadAMapSDK(): Promise<any> {
 
     script.onload = () => {
       if (window.AMap) {
-        resolve(window.AMap)
+        ensureAMapPlugins(window.AMap).then(resolve)
       } else {
+        amapLoadPromise = null
         reject(new Error('AMap script loaded but window.AMap is undefined'))
       }
     }

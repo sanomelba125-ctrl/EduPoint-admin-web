@@ -89,9 +89,10 @@ const mapError = ref<string | null>(null)
 
 // 校验经纬度是否在地球有效数值范围内
 function isValidCoords(lng?: number | null, lat?: number | null): boolean {
-  if (lng === undefined || lng === null || isNaN(lng) || typeof lng !== 'number') return false
-  if (lat === undefined || lat === null || isNaN(lat) || typeof lat !== 'number') return false
-  return lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90
+  const longitude = Number(lng)
+  const latitude = Number(lat)
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return false
+  return longitude >= -180 && longitude <= 180 && latitude >= -90 && latitude <= 90
 }
 
 /**
@@ -146,8 +147,8 @@ async function initAMap() {
 
     // 确定初始视野中心：优先已配置的打卡点，默认采用校园中心经纬度
     const hasExistingCoords = isValidCoords(form.longitude, form.latitude)
-    const initLng = hasExistingCoords ? (form.longitude as number) : 118.156821
-    const initLat = hasExistingCoords ? (form.latitude as number) : 24.629104
+    const initLng = hasExistingCoords ? Number(form.longitude) : 118.156821
+    const initLat = hasExistingCoords ? Number(form.latitude) : 24.629104
     const center = [initLng, initLat]
 
     const map = new AMap.Map('amapContainer', {
@@ -254,7 +255,7 @@ async function applyPickedLocation(lng: number, lat: number, customName?: string
  */
 function handleManualCoordsChange() {
   if (isValidCoords(form.longitude, form.latitude)) {
-    applyPickedLocation(form.longitude as number, form.latitude as number, undefined, false)
+    applyPickedLocation(Number(form.longitude), Number(form.latitude), undefined, false)
   }
 }
 
@@ -272,7 +273,7 @@ function updateRadiusCircle(val: number) {
  */
 function recenterMap() {
   if (isValidCoords(form.longitude, form.latitude) && amapInstance.value) {
-    amapInstance.value.setZoomAndCenter(16, [form.longitude, form.latitude])
+    amapInstance.value.setZoomAndCenter(16, [Number(form.longitude), Number(form.latitude)])
     ElMessage.info('已将地图视野复位至打卡点')
   } else if (amapInstance.value) {
     amapInstance.value.setZoomAndCenter(16, [118.156821, 24.629104])

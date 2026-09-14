@@ -154,18 +154,3 @@ export function cancelGiftOrder(data: OrderCancelDTO): Promise<void> {
   return http.post<void>('/gift/order/cancel', data)
 }
 
-export interface GiftOrderMetricsVO {
-  totalCount: number
-  pendingCount: number
-  completedCount: number
-  cancelledCount: number
-  totalPoints: number
-}
-
-/**
- * 管理端查询礼品兑换订单全局指标统计 (GET /api/gift/order/metrics)
- */
-export function getGiftOrderMetrics(): Promise<GiftOrderMetricsVO> {
-  return http.get<GiftOrderMetricsVO>('/gift/order/metrics')
-}
-
