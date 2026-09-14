@@ -24,7 +24,12 @@ const AMAP_PLUGINS = ['AMap.Geolocation', 'AMap.Geocoder', 'AMap.AutoComplete', 
 function ensureAMapPlugins(AMap: any): Promise<any> {
   if (!AMap?.plugin) return Promise.resolve(AMap)
   return new Promise((resolve) => {
-    AMap.plugin(AMAP_PLUGINS, () => resolve(AMap))
+    AMap.plugin(AMAP_PLUGINS, () => {
+      if (typeof AMap.getConfig === 'function') {
+        AMap.getConfig().appname = 'amap-jsapi-skill'
+      }
+      resolve(AMap)
+    })
   })
 }
 

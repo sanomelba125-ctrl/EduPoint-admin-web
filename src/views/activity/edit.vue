@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, shallowRef, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -12,6 +12,7 @@ import {
   Position
 } from '@element-plus/icons-vue'
 import ImageUploader from '@/components/ImageUploader.vue'
+import { useUserStore } from '@/store/user'
 import {
   getActivityDetail,
   createActivity,
@@ -77,9 +78,11 @@ const categoryOptions = [
 ]
 
 // ──────── 高德地图 2.0 选址与打卡点集成 ────────
-const amapInstance = ref<any>(null)
-const markerInstance = ref<any>(null)
-const circleInstance = ref<any>(null)
+const userStore = useUserStore()
+const amapInstance = shallowRef<any>(null)
+const markerInstance = shallowRef<any>(null)
+const circleInstance = shallowRef<any>(null)
+let resizeObserver: ResizeObserver | null = null
 const searchKeyword = ref('')
 const searchingPoi = ref(false)
 const locatingCurrent = ref(false)
@@ -99,6 +102,10 @@ function isValidCoords(lng?: number | null, lat?: number | null): boolean {
  * 安全清理地图实例
  */
 function cleanupMap() {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
   if (markerInstance.value) {
     try {
       markerInstance.value.setMap(null)
@@ -145,6 +152,11 @@ async function initAMap() {
 
     const AMap = await loadAMapSDK()
 
+    // 埋点：设置应用标识，用于统计 skill 调用来源
+    if (typeof AMap.getConfig === 'function') {
+      AMap.getConfig().appname = 'amap-jsapi-skill'
+    }
+
     // 确定初始视野中心：优先已配置的打卡点，默认采用校园中心经纬度
     const hasExistingCoords = isValidCoords(form.longitude, form.latitude)
     const initLng = hasExistingCoords ? Number(form.longitude) : 118.156821
@@ -152,12 +164,36 @@ async function initAMap() {
     const center = [initLng, initLat]
 
     const map = new AMap.Map('amapContainer', {
+      viewMode: '3D',
       zoom: 16,
       center,
       resizeEnable: true,
-      scrollWheel: true
+      scrollWheel: true,
+      mapStyle: 'amap://styles/normal'
     })
     amapInstance.value = map
+
+    map.on('complete', () => {
+      mapLoaded.value = true
+      mapLoading.value = false
+      map.resize()
+    })
+
+    if (window.ResizeObserver) {
+      resizeObserver = new ResizeObserver(() => {
+        if (amapInstance.value) {
+          amapInstance.value.resize()
+        }
+      })
+      resizeObserver.observe(container)
+    }
+
+    // 延迟二次触发 resize，杜绝初次渲染容器尺寸微调引起的局部灰格
+    setTimeout(() => {
+      if (amapInstance.value) {
+        amapInstance.value.resize()
+      }
+    }, 250)
 
     // 1. 创建中心打卡红色图钉 Marker（可拖拽）
     const marker = new AMap.Marker({
@@ -198,9 +234,6 @@ async function initAMap() {
         await applyPickedLocation(p.getLng(), p.getLat(), undefined, false)
       }
     })
-
-    mapLoaded.value = true
-    mapLoading.value = false
   } catch (err: any) {
     console.error('高德地图初始化异常:', err)
     mapError.value = err?.message || '地图服务加载失败，请检查网络或刷新重试'
@@ -228,6 +261,7 @@ async function applyPickedLocation(lng: number, lat: number, customName?: string
   }
   if (amapInstance.value) {
     amapInstance.value.panTo([roundedLng, roundedLat])
+    amapInstance.value.resize()
   }
 
   try {
@@ -274,9 +308,11 @@ function updateRadiusCircle(val: number) {
 function recenterMap() {
   if (isValidCoords(form.longitude, form.latitude) && amapInstance.value) {
     amapInstance.value.setZoomAndCenter(16, [Number(form.longitude), Number(form.latitude)])
+    amapInstance.value.resize()
     ElMessage.info('已将地图视野复位至打卡点')
   } else if (amapInstance.value) {
     amapInstance.value.setZoomAndCenter(16, [118.156821, 24.629104])
+    amapInstance.value.resize()
   }
 }
 
@@ -360,6 +396,20 @@ async function handleLocateCurrent() {
 onBeforeUnmount(() => {
   cleanupMap()
 })
+
+// 监听侧边栏折叠/展开，平滑调整地图尺寸，防止出现未填满的灰色区域
+watch(
+  () => userStore.isCollapse,
+  () => {
+    nextTick(() => {
+      setTimeout(() => {
+        if (amapInstance.value) {
+          amapInstance.value.resize()
+        }
+      }, 300)
+    })
+  }
+)
 
 // ──────── 初始化 ────────
 onMounted(async () => {
@@ -794,7 +844,7 @@ function goBack() {
 
 <style scoped>
 .edit-page {
-  padding: 16px 20px 80px;
+  padding: 16px 20px 24px;
   background-color: var(--el-bg-color-page, #f5f7fa);
   min-height: calc(100vh - 84px);
 }
@@ -886,13 +936,14 @@ function goBack() {
 
 .amap-toolbar {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) auto minmax(max-content, auto);
+  display: flex;
   align-items: center;
-  gap: 12px 16px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   box-sizing: border-box;
 }
 
@@ -900,8 +951,8 @@ function goBack() {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  width: 100%;
+  flex: 1 1 320px;
+  min-width: 240px;
   box-sizing: border-box;
 }
 
@@ -918,20 +969,20 @@ function goBack() {
   width: 1px;
   height: 22px;
   background-color: #cbd5e1;
-  margin: 0;
+  margin: 0 4px;
 }
 
 .toolbar-actions-zone {
   display: flex;
   align-items: center;
-  gap: 12px;
-  white-space: nowrap;
+  gap: 10px;
+  flex-wrap: wrap;
   box-sizing: border-box;
 }
 
 .toolbar-actions-zone .el-button {
   flex: 0 0 auto;
-  min-width: 132px;
+  min-width: 108px;
 }
 
 .toolbar-actions-zone .el-button + .el-button {
@@ -1150,19 +1201,28 @@ function goBack() {
   overflow-wrap: anywhere;
 }
 
-/* 底部操作栏 */
+/* 底部操作栏（吸底且自适应内容区，绝不覆盖侧边栏与表单底层） */
 .bottom-bar {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: #fff;
-  border-top: 1px solid var(--el-border-color-lighter);
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   padding: 12px 24px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+  margin-top: 20px;
+}
+
+/* 调整高德官方标识与版权信息位置，避免与底端选址信息悬浮条发生遮挡叠层 */
+:deep(.amap-logo),
+:deep(.amap-copyright) {
+  bottom: 48px !important;
+  left: 12px !important;
+  opacity: 0.85;
 }
 </style>
