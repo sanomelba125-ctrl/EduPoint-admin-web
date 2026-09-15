@@ -117,7 +117,7 @@ export const routes: RouteRecordRaw[] = [
         meta: { 
           title: '礼物兑换审核', 
           icon: markRaw(ShoppingCart),
-          roles: ['SUPER_ADMIN', 'ADMIN', 'COUNSELOR']
+          roles: ['SUPER_ADMIN', 'ADMIN']
         }
       },
       {
@@ -133,7 +133,7 @@ export const routes: RouteRecordRaw[] = [
         meta: { 
           title: '知识库管理 (QA)', 
           icon: markRaw(ChatDotRound),
-          roles: ['SUPER_ADMIN', 'ADMIN', 'COUNSELOR']
+          roles: ['SUPER_ADMIN', 'ADMIN']
         }
       },
       {
@@ -143,7 +143,7 @@ export const routes: RouteRecordRaw[] = [
         meta: { 
           title: '🤖 AI 对话与工具调度', 
           icon: markRaw(ChatDotRound),
-          roles: ['SUPER_ADMIN', 'ADMIN', 'COUNSELOR']
+          roles: ['SUPER_ADMIN', 'ADMIN']
         }
       }
     ]
