@@ -10,7 +10,8 @@ import {
   Coin,
   Present,
   ShoppingCart,
-  ChatDotRound
+  ChatDotRound,
+  Medal
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import Layout from '@/layout/index.vue'
@@ -118,6 +119,12 @@ export const routes: RouteRecordRaw[] = [
           icon: markRaw(ShoppingCart),
           roles: ['SUPER_ADMIN', 'ADMIN', 'COUNSELOR']
         }
+      },
+      {
+        path: 'certificate',
+        name: 'Certificate',
+        component: () => import('@/views/certificate/index.vue'),
+        meta: { title: '电子证书防伪', icon: markRaw(Medal) }
       },
       {
         path: 'qa-knowledge',

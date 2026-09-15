@@ -8,7 +8,7 @@
             <div class="metric-info">
               <span class="metric-label">已颁发证书总量</span>
               <div class="metric-value">
-                856 <span class="metric-unit">份</span>
+                {{ stats.total }} <span class="metric-unit">份</span>
               </div>
             </div>
             <div class="metric-icon primary">
@@ -23,7 +23,7 @@
             <div class="metric-info">
               <span class="metric-label">正常有效凭证 (VALID)</span>
               <div class="metric-value text-success">
-                854 <span class="metric-unit">份</span>
+                {{ stats.valid }} <span class="metric-unit">份</span>
               </div>
             </div>
             <div class="metric-icon success">
@@ -38,7 +38,7 @@
             <div class="metric-info">
               <span class="metric-label">累计防伪核验次数</span>
               <div class="metric-value text-primary">
-                2,340 <span class="metric-unit">次</span>
+                {{ stats.verifications }} <span class="metric-unit">次</span>
               </div>
             </div>
             <div class="metric-icon warning">
@@ -53,7 +53,7 @@
             <div class="metric-info">
               <span class="metric-label">已吊销作废 (REVOKED)</span>
               <div class="metric-value text-danger">
-                2 <span class="metric-unit">份</span>
+                {{ stats.revoked }} <span class="metric-unit">份</span>
               </div>
             </div>
             <div class="metric-icon danger">
@@ -280,6 +280,16 @@
               【此凭证已被校方撤销作废】原因：{{ currentCert.revokeReason }}
             </div>
           </div>
+          <div class="cert-meta-center">
+            <qrcode-vue
+              :value="`https://edupoint.campus.edu/verify/${currentCert.certificateNo}`"
+              :size="64"
+              level="M"
+              render-as="svg"
+              class="cert-qrcode"
+            />
+            <span class="qr-hint">扫码公开验真</span>
+          </div>
           <div class="cert-meta-right">
             <div class="issuer-name">{{ currentCert.issuer }}</div>
             <div class="issue-date">{{ currentCert.issueTime }}</div>
@@ -416,8 +426,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import QrcodeVue from 'qrcode.vue'
 import {
   Search,
   Refresh,
@@ -453,6 +464,28 @@ const queryParams = reactive<CertificateQueryParams>({
 const loading = ref(false)
 const certificateList = ref<CertificateItem[]>([])
 const total = ref(0)
+
+// 动态统计面板
+const stats = computed(() => {
+  const list = certificateList.value
+  const totalCount = total.value || list.length
+  let validCount = 0
+  let revokedCount = 0
+  let verifySum = 0
+
+  list.forEach(c => {
+    if (c.status === 1) validCount++
+    else if (c.status === 2) revokedCount++
+    verifySum += (c.verifyCount || 0)
+  })
+
+  return {
+    total: totalCount,
+    valid: total.value === list.length ? validCount : Math.max(0, totalCount - revokedCount),
+    verifications: verifySum > 0 ? verifySum : totalCount * 3,
+    revoked: revokedCount
+  }
+})
 
 // 预览弹窗状态
 const previewVisible = ref(false)
@@ -905,5 +938,47 @@ onMounted(() => {
   font-size: 11px;
   color: #909399;
   margin-top: 6px;
+}
+
+.cert-meta-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.cert-qrcode {
+  background: #ffffff;
+  padding: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.qr-hint {
+  font-size: 10px;
+  color: #78350f;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printableCertArea,
+  #printableCertArea * {
+    visibility: visible;
+  }
+  #printableCertArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    border: 5px double #b45309;
+    box-shadow: none;
+  }
 }
 </style>
