@@ -203,12 +203,16 @@ const handleSend = async () => {
               debugInfo.source = data.source
               if (data.source === 'SENSENOVA') {
                 debugInfo.engine = '商汤日日新大模型 (Tools)'
+              } else if (data.source === 'QWEN') {
+                debugInfo.engine = '通义千问 (Qwen 3.8-27B)'
               } else if (data.source === 'TOOL_AGENT') {
                 debugInfo.engine = 'Function Calling 调度引擎'
               } else if (data.source === 'LOCAL_AGENT') {
                 debugInfo.engine = '本地智能工具引擎 (Local Fallback)'
               } else if (data.source === 'KNOWLEDGE_BASE') {
                 debugInfo.engine = '官方知识库直连引擎'
+              } else {
+                debugInfo.engine = `${data.source} 大模型`
               }
             }
 
@@ -289,7 +293,7 @@ const handleSend = async () => {
                 <!-- 引擎微标 -->
                 <div v-if="msg.role === 'assistant' && msg.source" class="source-tag">
                   <el-tag size="small" effect="plain" type="success">
-                    {{ msg.source === 'SENSENOVA' ? '商汤日日新大模型' : (msg.source === 'TOOL_AGENT' ? 'Function Calling 调度' : '本地智能工具引擎') }}
+                    {{ msg.source === 'SENSENOVA' ? '商汤日日新大模型' : (msg.source === 'QWEN' ? '通义千问 (Qwen 3.8-27B)' : (msg.source === 'TOOL_AGENT' ? 'Function Calling 调度' : (msg.source === 'KNOWLEDGE_BASE' ? '官方知识库' : '本地智能工具引擎'))) }}
                   </el-tag>
                 </div>
 

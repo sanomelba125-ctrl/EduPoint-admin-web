@@ -585,9 +585,6 @@ const handleSimulatorSend = async () => {
         </el-form-item>
 
         <div class="filter-right">
-          <el-button type="success" :icon="ChatDotRound" @click="openSimulatorDrawer">
-            🤖 真机对话模拟器 (Function Calling)
-          </el-button>
           <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增问答条目</el-button>
         </div>
       </el-form>
@@ -595,17 +592,6 @@ const handleSimulatorSend = async () => {
 
     <!-- 知识库列表表格卡片 -->
     <el-card shadow="never" class="table-card">
-      <div class="simulator-callout-banner">
-        <div class="callout-left">
-          <span class="callout-badge">NEW</span>
-          <span class="callout-title">🤖 AI 智能客服已接入 Function Calling 大模型调度与 5 大只读原子工具</span>
-          <span class="callout-desc">支持实时查询积分、订单核销码、活动候补排队与防伪证书数据</span>
-        </div>
-        <el-button type="success" size="default" :icon="ChatDotRound" @click="openSimulatorDrawer">
-          打开真机对话模拟器 🚀
-        </el-button>
-      </div>
-
       <el-table
         v-loading="loading"
         :data="knowledgeList"
@@ -1185,44 +1171,6 @@ const handleSimulatorSend = async () => {
 /* 列表表格 */
 .table-card {
   border-radius: 8px;
-}
-
-.simulator-callout-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-  border: 1px solid #a7f3d0;
-  border-radius: 8px;
-  padding: 12px 18px;
-  margin-bottom: 16px;
-}
-
-.callout-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.callout-badge {
-  background: #10b981;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.callout-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #065f46;
-}
-
-.callout-desc {
-  font-size: 12px;
-  color: #047857;
 }
 
 .qa-code {

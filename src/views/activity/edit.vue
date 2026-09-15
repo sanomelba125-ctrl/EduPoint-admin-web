@@ -700,8 +700,8 @@ function goBack() {
           </div>
 
           <div class="amap-wrapper">
-            <!-- 工具操作栏 -->
-            <div class="amap-toolbar">
+            <!-- 工具操作栏 (避开高德SDK内置 .amap-toolbar 类名冲突) -->
+            <div class="map-ctrl-toolbar">
               <!-- 左侧：POI 地点搜索区域 -->
               <div class="toolbar-search-zone">
                 <el-input
@@ -739,7 +739,7 @@ function goBack() {
                     :loading="locatingCurrent"
                     @click="handleLocateCurrent"
                   >
-                    定位当前
+                    定位当前位置
                   </el-button>
                 </el-tooltip>
 
@@ -749,7 +749,7 @@ function goBack() {
                     :icon="RefreshRight"
                     @click="recenterMap"
                   >
-                    复位中心
+                    复位打卡点
                   </el-button>
                 </el-tooltip>
               </div>
@@ -934,7 +934,7 @@ function goBack() {
   box-sizing: border-box;
 }
 
-.amap-toolbar {
+.map-ctrl-toolbar {
   width: 100%;
   padding: 10px 16px;
   background: #f8fafc;
@@ -951,8 +951,9 @@ function goBack() {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1 1 320px;
-  min-width: 240px;
+  flex: 1 1 280px;
+  min-width: 200px;
+  max-width: 520px;
   box-sizing: border-box;
 }
 
@@ -976,13 +977,27 @@ function goBack() {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
   box-sizing: border-box;
 }
 
+.toolbar-actions-zone :deep(.el-button),
 .toolbar-actions-zone .el-button {
-  flex: 0 0 auto;
-  min-width: 108px;
+  flex: 0 0 auto !important;
+  max-width: none !important;
+  width: auto !important;
+  min-width: 110px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  padding: 8px 14px !important;
+}
+
+.toolbar-actions-zone :deep(.el-button span),
+.toolbar-actions-zone .el-button span {
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  display: inline-block !important;
 }
 
 .toolbar-actions-zone .el-button + .el-button {
@@ -990,7 +1005,7 @@ function goBack() {
 }
 
 @media (max-width: 900px) {
-  .amap-toolbar {
+  .map-ctrl-toolbar {
     grid-template-columns: 1fr;
     gap: 10px;
   }
@@ -1025,7 +1040,7 @@ function goBack() {
     max-width: 100%;
   }
 
-  .amap-toolbar {
+  .map-ctrl-toolbar {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
@@ -1054,7 +1069,7 @@ function goBack() {
     line-height: 1.5;
   }
 
-  .amap-toolbar {
+  .map-ctrl-toolbar {
     padding: 10px 12px;
   }
 
