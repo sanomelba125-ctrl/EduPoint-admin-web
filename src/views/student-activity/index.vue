@@ -225,7 +225,7 @@ const formatTime = (timeStr?: string) => {
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
           <el-button :icon="Refresh" @click="handleRefreshAll">刷新</el-button>
-          <el-button type="success" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出报表</el-button>
+          <el-button type="success" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出考勤明细</el-button>
         </el-form-item>
       </el-form>
     </el-card>

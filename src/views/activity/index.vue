@@ -2,8 +2,9 @@
 import { ref, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Search, Grid, Edit, Delete, Location } from '@element-plus/icons-vue'
+import { Plus, Refresh, Search, Grid, Edit, Delete, Location, Download } from '@element-plus/icons-vue'
 import QrcodeVue from 'qrcode.vue'
+import { downloadFile } from '@/utils/download'
 import {
   getActivityPage,
   archiveActivity,
@@ -105,6 +106,21 @@ async function handleArchive(row: ActivityVO) {
     loadData()
   } catch {
     // 取消操作
+  }
+}
+
+// ──────── 导出活动清单 Excel 报表 ────────
+const exportLoading = ref(false)
+
+async function handleExport() {
+  exportLoading.value = true
+  try {
+    await downloadFile('/admin/export/activities', {}, '活动明细报表.xlsx')
+    ElMessage.success('活动明细报表导出成功')
+  } catch (err: any) {
+    ElMessage.error(err.message || '导出失败')
+  } finally {
+    exportLoading.value = false
   }
 }
 
@@ -267,6 +283,7 @@ const countdownColor = computed(() => {
         <el-form-item>
           <el-button :icon="Search" type="primary" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-button :icon="Download" type="success" plain :loading="exportLoading" @click="handleExport">导出活动清单</el-button>
         </el-form-item>
         <el-form-item style="margin-left: auto;">
           <el-button type="primary" :icon="Plus" @click="toCreate">发布新活动</el-button>

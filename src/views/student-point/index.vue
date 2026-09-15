@@ -8,8 +8,10 @@ import {
   ShoppingCart,
   RefreshRight,
   Tickets,
-  EditPen
+  EditPen,
+  Download
 } from '@element-plus/icons-vue'
+import { downloadFile } from '@/utils/download'
 import {
   getAdminPointRecords,
   getLedgerMetrics,
@@ -177,6 +179,21 @@ const handleSubmitAdjust = async () => {
   }
 }
 
+// ──────── 导出积分流水 Excel 报表 ────────
+const exportLoading = ref(false)
+
+async function handleExport() {
+  exportLoading.value = true
+  try {
+    await downloadFile('/admin/export/points', {}, '学生积分明细报表.xlsx')
+    ElMessage.success('学生积分流水报表导出成功')
+  } catch (err: any) {
+    ElMessage.error(err.message || '导出失败')
+  } finally {
+    exportLoading.value = false
+  }
+}
+
 onMounted(() => {
   fetchMetrics()
 })
@@ -266,6 +283,7 @@ onMounted(() => {
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-button type="success" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出积分流水</el-button>
         </el-form-item>
 
         <div class="filter-right">
