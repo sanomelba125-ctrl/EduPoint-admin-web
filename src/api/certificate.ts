@@ -125,8 +125,19 @@ const mockCertificates: CertificateItem[] = [
  * 8.3 管理端分页查询电子荣誉证书台账
  */
 export async function getCertificateListApi(params: CertificateQueryParams) {
+  const cleanParams: Record<string, any> = {}
+  if (params.page) cleanParams.page = params.page
+  if (params.size) cleanParams.size = params.size
+  if (params.certificateNo?.trim()) cleanParams.certificateNo = params.certificateNo.trim()
+  if (params.studentName?.trim()) cleanParams.studentName = params.studentName.trim()
+  if (params.studentNo?.trim()) cleanParams.studentNo = params.studentNo.trim()
+  if (params.activityTitle?.trim()) cleanParams.activityTitle = params.activityTitle.trim()
+  if (params.status !== undefined && params.status !== '' && params.status !== null) {
+    cleanParams.status = Number(params.status)
+  }
+
   try {
-    const res: any = await request.get('/certificate/list', { params })
+    const res: any = await request.get('/certificate/list', { params: cleanParams })
     const data = res?.records !== undefined ? res : (res?.data || res)
     if (data && Array.isArray(data.records)) {
       return data
@@ -180,35 +191,48 @@ export async function revokeCertificateApi(id: number, revokeReason: string) {
   try {
     const res: any = await request.put(`/certificate/${id}/revoke`, { revokeReason })
     return res
-  } catch (error) {
+  } catch (error: any) {
     console.warn('[Certificate] Revoke API call error, checking fallback:', error)
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message)
+    }
+    const target = mockCertificates.find(c => c.id === id)
+    if (target) {
+      target.status = 2
+      target.revokeReason = revokeReason
+      return true
+    }
+    throw error
   }
-
-  const target = mockCertificates.find(c => c.id === id)
-  if (target) {
-    target.status = 2
-    target.revokeReason = revokeReason
-    return true
-  }
-  throw new Error('未找到该证书')
 }
 
 /**
  * 8.2 公开扫码验真证书（真伪核验）
  */
 export async function verifyCertificateApi(certificateNo: string): Promise<CertificateVerifyResult> {
+  const code = certificateNo.trim()
   try {
-    const res: any = await request.get(`/certificate/verify/${certificateNo}`)
+    const res: any = await request.get(`/certificate/verify/${code}`)
     const data = (res && res.data) ? res.data : res
-    if (data && data.certificateNo) {
+    if (data && (data.certificateNo || data.title)) {
       return {
-        ...data,
-        studentNameMasked: data.studentNameMasked || data.studentName,
+        certificateNo: data.certificateNo || code,
+        studentNameMasked: data.studentNameMasked || data.studentName || '同学',
+        title: data.title,
+        activityTitle: data.activityTitle,
+        issuer: data.issuer,
+        issueTime: data.issueTime,
+        status: data.status,
+        statusText: data.statusText || (data.status === 1 ? '有效 (VALID)' : data.status === 2 ? '已撤销 (REVOKED)' : '已过期 (EXPIRED)'),
+        revokeReason: data.revokeReason,
         verifyTime: data.verifyTime || new Date().toLocaleString()
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.warn('[Certificate] Public verify API call error, checking fallback:', error)
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message)
+    }
   }
 
   const target = mockCertificates.find(c => c.certificateNo.toUpperCase() === certificateNo.trim().toUpperCase())

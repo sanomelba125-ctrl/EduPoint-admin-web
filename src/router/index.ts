@@ -10,7 +10,8 @@ import {
   Coin,
   Present,
   ShoppingCart,
-  ChatDotRound
+  ChatDotRound,
+  Medal
 } from '@element-plus/icons-vue'
 import Layout from '@/layout/index.vue'
 
@@ -79,6 +80,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'StudentGift',
         component: () => import('@/views/student-gift/index.vue'),
         meta: { title: '礼物兑换审核', icon: markRaw(ShoppingCart) }
+      },
+      {
+        path: 'certificate',
+        name: 'Certificate',
+        component: () => import('@/views/certificate/index.vue'),
+        meta: { title: '电子证书防伪', icon: markRaw(Medal) }
       },
       {
         path: 'qa-knowledge',
