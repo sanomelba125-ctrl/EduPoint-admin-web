@@ -124,9 +124,19 @@ export const routes: RouteRecordRaw[] = [
         name: 'QaKnowledge',
         component: () => import('@/views/qa-knowledge/index.vue'),
         meta: { 
-          title: 'AI 客服知识库', 
+          title: '知识库管理 (QA)', 
           icon: markRaw(ChatDotRound),
-          roles: ['SUPER_ADMIN', 'ADMIN'] // 辅导员无权维护知识库
+          roles: ['SUPER_ADMIN', 'ADMIN', 'COUNSELOR']
+        }
+      },
+      {
+        path: 'ai-simulator',
+        name: 'AiSimulator',
+        component: () => import('@/views/ai-simulator/index.vue'),
+        meta: { 
+          title: '🤖 AI 对话与工具调度', 
+          icon: markRaw(ChatDotRound),
+          roles: ['SUPER_ADMIN', 'ADMIN', 'COUNSELOR']
         }
       }
     ]
