@@ -2,12 +2,13 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Plus, Search, Refresh, Edit, Delete, SwitchButton, Present } from '@element-plus/icons-vue'
+import { Plus, Search, Refresh, Edit, Delete, SwitchButton, Present, Box } from '@element-plus/icons-vue'
 import ImageUploader from '@/components/ImageUploader.vue'
 import {
   getGiftList,
   createGift,
   updateGift,
+  restockGift,
   deleteGift,
   toggleGiftStatus,
   type GiftVO,
@@ -130,6 +131,37 @@ const handleSubmit = async () => {
       submitLoading.value = false
     }
   })
+}
+
+/**
+ * 礼品补货：入库总量与可用库存同步增加（库存变更的唯一入口，编辑礼品不动库存）
+ */
+const handleRestock = async (row: GiftVO) => {
+  const currentStock = row.stock !== undefined ? row.stock : (row.totalStock || 0)
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `为礼品【${row.name}】追加入库数量，入库总量与可用库存将同步增加。当前可用库存 ${currentStock} 件。`,
+      '礼品补货',
+      {
+        confirmButtonText: '确认补货',
+        cancelButtonText: '取消',
+        inputValue: '10',
+        inputPlaceholder: '请输入本次入库件数'
+      }
+    )
+    const quantity = Number(value)
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      ElMessage.error('补货数量必须为正整数')
+      return
+    }
+    await restockGift(row.id, quantity)
+    ElMessage.success(`礼品【${row.name}】补货 ${quantity} 件成功`)
+    fetchGifts()
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      ElMessage.error(err?.message || '补货失败')
+    }
+  }
 }
 
 const handleToggleStatus = async (row: GiftVO) => {
@@ -267,6 +299,7 @@ const handleDelete = async (row: GiftVO) => {
               <el-tag v-if="(row.stock !== undefined ? row.stock : (row.totalStock || 0)) <= 0" type="danger" size="small" effect="plain" class="tag-ml">缺货</el-tag>
               <el-tag v-else-if="(row.stock !== undefined ? row.stock : (row.totalStock || 0)) <= 5" type="warning" size="small" effect="plain" class="tag-ml">告急</el-tag>
             </div>
+            <div class="stock-total">入库总量 {{ row.totalStock !== undefined ? row.totalStock : '-' }}</div>
           </template>
         </el-table-column>
 
@@ -290,8 +323,9 @@ const handleDelete = async (row: GiftVO) => {
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" fixed="right" align="right">
+        <el-table-column label="操作" width="280" fixed="right" align="right">
           <template #default="{ row }">
+            <el-button link type="primary" :icon="Box" size="small" @click="handleRestock(row)">补货</el-button>
             <el-button link type="primary" :icon="Edit" size="small" @click="openEditDialog(row)">编辑</el-button>
             <el-button
               link
@@ -358,7 +392,7 @@ const handleDelete = async (row: GiftVO) => {
             controls-position="right"
           />
           <div v-if="isEdit" style="font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4;">
-            💡 实时库存由前台兑换与核销动态扣减与回退。修改礼品基本信息不变更当前库存。
+            💡 可用库存由前台兑换实时扣减、退单自动回退。需要追加库存请用列表里的「补货」按钮，编辑基础信息不会变更库存。
           </div>
         </el-form-item>
 
@@ -499,6 +533,12 @@ const handleDelete = async (row: GiftVO) => {
 
 .tag-ml {
   margin-left: 6px;
+}
+
+.stock-total {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
 
 .version-tag {

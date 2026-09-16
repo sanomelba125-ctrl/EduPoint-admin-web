@@ -34,8 +34,6 @@ export interface GiftUpdateDTO {
   image?: string
   pointsCost?: number
   pointsRequired?: number
-  stock?: number
-  totalStock?: number
   status?: number
 }
 
@@ -114,9 +112,17 @@ export function createGift(data: GiftCreateDTO): Promise<GiftVO> {
 
 /**
  * 修改礼品信息 (PUT /api/gift/update)
+ * 仅维护基础信息，库存不在此接口变更
  */
 export function updateGift(data: GiftUpdateDTO): Promise<GiftVO> {
   return http.put<GiftVO>('/gift/update', data)
+}
+
+/**
+ * 礼品补货：入库总量与可用库存同步增加 (POST /api/gift/{id}/restock?quantity=N)
+ */
+export function restockGift(id: number, quantity: number): Promise<GiftVO> {
+  return http.post<GiftVO>(`/gift/${id}/restock`, null, { params: { quantity } })
 }
 
 /**
