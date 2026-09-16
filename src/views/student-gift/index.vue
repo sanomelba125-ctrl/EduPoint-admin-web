@@ -54,7 +54,7 @@ const {
     let studentName: string | undefined = undefined
 
     if (kw) {
-      if (kw.toUpperCase().startsWith('PK') || /^[A-Za-z0-9]{6,8}$/.test(kw)) {
+      if (kw.toUpperCase().startsWith('PK') || /^[A-Za-z0-9]{6,12}$/.test(kw)) {
         pickupCode = kw
       } else if (kw.toUpperCase().startsWith('ORD')) {
         orderNo = kw
