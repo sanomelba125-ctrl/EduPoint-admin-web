@@ -126,10 +126,18 @@ export function restockGift(id: number, quantity: number): Promise<GiftVO> {
 }
 
 /**
- * 删除礼品 (DELETE /api/gift/{id})
+ * 礼品库存调整（改库存：正数入库补货，负数盘亏核减）(POST /api/gift/{id}/stock/adjust?quantity=N)
  */
-export function deleteGift(id: number): Promise<void> {
-  return http.delete<void>(`/gift/${id}`)
+export function adjustGiftStock(id: number, quantity: number): Promise<GiftVO> {
+  return http.post<GiftVO>(`/gift/${id}/stock/adjust`, null, { params: { quantity } })
+}
+
+/**
+ * 删除礼品 (DELETE /api/gift/{id})
+ * 若无兑换记录则物理删除，若有兑换记录则自动降级为下架并返回提示文案
+ */
+export function deleteGift(id: number): Promise<string> {
+  return http.delete<string>(`/gift/${id}`)
 }
 
 /**

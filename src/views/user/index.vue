@@ -198,18 +198,23 @@ const handleSubmit = async () => {
 
 // 重置管理员密码
 const handleResetPassword = (row: SysUserVO) => {
+  if (isSuperAdmin(row)) {
+    ElMessage.warning('系统内置超级管理员账号受核心保护，禁止重置密码！')
+    return
+  }
+
   ElMessageBox.prompt(
-    `请输入管理员 [${row.nickname} (${row.username})] 的新密码（留空默认重置为 123）：`,
+    `请输入管理员 [${row.nickname} (${row.username})] 的新密码（留空默认重置为 123456）：`,
     '重置管理员密码',
     {
       confirmButtonText: '确定重置',
       cancelButtonText: '取消',
-      inputValue: '123',
+      inputValue: '123456',
       inputPattern: /^.{3,30}$/,
       inputErrorMessage: '密码长度需在 3 到 30 个字符之间'
     }
   ).then(async ({ value }) => {
-    const pwd = value && value.trim() ? value.trim() : '123'
+    const pwd = value && value.trim() ? value.trim() : '123456'
     await resetUserPassword(row.id, { newPassword: pwd })
     ElMessage.success(`管理员 [${row.nickname}] 密码已成功重置为: ${pwd}`)
   }).catch(() => {})
@@ -380,9 +385,24 @@ const handleDelete = (row: SysUserVO) => {
               编辑
             </el-button>
 
-            <el-button link type="warning" :icon="Key" size="small" @click="handleResetPassword(row)">
-              重置密码
-            </el-button>
+            <el-tooltip
+              :disabled="!isSuperAdmin(row)"
+              content="系统内置超级管理员不可重置密码"
+              placement="top"
+            >
+              <span>
+                <el-button
+                  link
+                  type="warning"
+                  :icon="Key"
+                  size="small"
+                  :disabled="isSuperAdmin(row)"
+                  @click="handleResetPassword(row)"
+                >
+                  重置密码
+                </el-button>
+              </span>
+            </el-tooltip>
 
             <el-tooltip
               :disabled="!isSuperAdmin(row) && row.id !== currentUserId"

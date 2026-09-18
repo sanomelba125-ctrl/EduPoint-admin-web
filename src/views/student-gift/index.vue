@@ -249,7 +249,17 @@ const handleConfirmCancel = async () => {
 
         <el-table-column label="申请学生" min-width="150">
           <template #default="{ row }">
-            <div class="student-name">{{ row.studentName || row.receiverName || '学生' }}</div>
+            <div class="student-name">
+              {{ row.studentName || row.receiverName || '学生' }}
+              <el-tag
+                v-if="row.receiverName && row.studentName && row.receiverName !== row.studentName"
+                size="small"
+                type="info"
+                style="margin-left: 4px;"
+              >
+                收件: {{ row.receiverName }}
+              </el-tag>
+            </div>
             <div class="sub-text">
               {{ row.studentNo || '-' }}
               <span v-if="row.className">· {{ row.className }}</span>
@@ -444,7 +454,7 @@ const handleConfirmCancel = async () => {
         </div>
 
         <div v-if="matchedOrder.status === 1" class="res-alert">
-          核销确认后，订单状态将变更为【已提货 COMPLETED】，扣减实物库存并记入履约审计日志。
+          核销确认后，订单状态将变更为【已提货 COMPLETED】，记录核销管理员与提货交付时间。
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import {
   createGift,
   updateGift,
   restockGift,
+  adjustGiftStock,
   deleteGift,
   toggleGiftStatus,
   type GiftVO,
@@ -134,33 +135,47 @@ const handleSubmit = async () => {
 }
 
 /**
- * 礼品补货：入库总量与可用库存同步增加（库存变更的唯一入口，编辑礼品不动库存）
+ * 改库存（支持入库补货与盘亏核减，条件 SQL 原子更新）
  */
-const handleRestock = async (row: GiftVO) => {
-  const currentStock = row.stock !== undefined ? row.stock : (row.totalStock || 0)
+const stockDialogVisible = ref(false)
+const currentStockRow = ref<GiftVO | null>(null)
+const stockForm = reactive({
+  type: 'INCREASE' as 'INCREASE' | 'DECREASE',
+  quantity: 10
+})
+const stockSubmitting = ref(false)
+
+const openStockDialog = (row: GiftVO) => {
+  currentStockRow.value = row
+  stockForm.type = 'INCREASE'
+  stockForm.quantity = 10
+  stockDialogVisible.value = true
+}
+
+const handleConfirmAdjustStock = async () => {
+  if (!currentStockRow.value) return
+  if (!stockForm.quantity || stockForm.quantity <= 0) {
+    ElMessage.error('调整数量必须为正整数')
+    return
+  }
+  const currentStock = currentStockRow.value.stock ?? (currentStockRow.value.totalStock || 0)
+  if (stockForm.type === 'DECREASE' && stockForm.quantity > currentStock) {
+    ElMessage.error(`盘亏核减数量不能超过当前可用库存（${currentStock} 件）`)
+    return
+  }
+
+  stockSubmitting.value = true
+  const delta = stockForm.type === 'INCREASE' ? stockForm.quantity : -stockForm.quantity
+  const actionText = stockForm.type === 'INCREASE' ? '入库补货' : '盘亏核减'
   try {
-    const { value } = await ElMessageBox.prompt(
-      `为礼品【${row.name}】追加入库数量，入库总量与可用库存将同步增加。当前可用库存 ${currentStock} 件。`,
-      '礼品补货',
-      {
-        confirmButtonText: '确认补货',
-        cancelButtonText: '取消',
-        inputValue: '10',
-        inputPlaceholder: '请输入本次入库件数'
-      }
-    )
-    const quantity = Number(value)
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-      ElMessage.error('补货数量必须为正整数')
-      return
-    }
-    await restockGift(row.id, quantity)
-    ElMessage.success(`礼品【${row.name}】补货 ${quantity} 件成功`)
+    await adjustGiftStock(currentStockRow.value.id, delta)
+    ElMessage.success(`礼品【${currentStockRow.value.name}】${actionText} ${stockForm.quantity} 件成功`)
+    stockDialogVisible.value = false
     fetchGifts()
   } catch (err: any) {
-    if (err !== 'cancel') {
-      ElMessage.error(err?.message || '补货失败')
-    }
+    ElMessage.error(err?.message || `${actionText}失败`)
+  } finally {
+    stockSubmitting.value = false
   }
 }
 
@@ -191,7 +206,7 @@ const handleToggleStatus = async (row: GiftVO) => {
 const handleDelete = async (row: GiftVO) => {
   try {
     await ElMessageBox.confirm(
-      `确定要从礼品库删除【${row.name}】吗？删除后不可恢复！`,
+      `确定要删除礼品「${row.name}」吗？若已有学生兑换记录将自动转为下架状态。`,
       '删除确认',
       {
         confirmButtonText: '确定删除',
@@ -199,8 +214,12 @@ const handleDelete = async (row: GiftVO) => {
         type: 'warning'
       }
     )
-    await deleteGift(row.id)
-    ElMessage.success('礼品已成功删除')
+    const resultMsg = await deleteGift(row.id)
+    if (typeof resultMsg === 'string' && resultMsg.includes('下架')) {
+      ElMessage.warning(resultMsg)
+    } else {
+      ElMessage.success(resultMsg || '礼品已成功删除')
+    }
     fetchGifts()
   } catch (err: any) {
     if (err !== 'cancel') {
@@ -325,7 +344,7 @@ const handleDelete = async (row: GiftVO) => {
 
         <el-table-column label="操作" width="280" fixed="right" align="right">
           <template #default="{ row }">
-            <el-button link type="primary" :icon="Box" size="small" @click="handleRestock(row)">补货</el-button>
+            <el-button link type="primary" :icon="Box" size="small" @click="openStockDialog(row)">改库存</el-button>
             <el-button link type="primary" :icon="Edit" size="small" @click="openEditDialog(row)">编辑</el-button>
             <el-button
               link
@@ -426,10 +445,121 @@ const handleDelete = async (row: GiftVO) => {
         </span>
       </template>
     </el-dialog>
+
+    <!-- 改库存（盘盈入库 / 盘亏核减）弹窗 -->
+    <el-dialog
+      v-model="stockDialogVisible"
+      title="调整礼品库存"
+      width="460px"
+      destroy-on-close
+    >
+      <div v-if="currentStockRow" class="stock-adjust-body">
+        <div class="gift-info-banner">
+          <div class="banner-title">🎁 {{ currentStockRow.name }}</div>
+          <div class="banner-meta">
+            <span>当前可用库存：<strong>{{ currentStockRow.stock ?? currentStockRow.totalStock ?? 0 }}</strong> 件</span>
+            <span style="margin-left: 16px;">累计入库总量：<strong>{{ currentStockRow.totalStock ?? 0 }}</strong> 件</span>
+          </div>
+        </div>
+
+        <el-form label-position="top" style="margin-top: 18px;">
+          <el-form-item label="调整方式">
+            <el-radio-group v-model="stockForm.type" size="default">
+              <el-radio-button value="INCREASE">🟢 盘盈入库 (+)</el-radio-button>
+              <el-radio-button value="DECREASE">🔴 盘亏报损 (-)</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item :label="stockForm.type === 'INCREASE' ? '入库增加件数' : '盘亏核减件数'">
+            <el-input-number
+              v-model="stockForm.quantity"
+              :min="1"
+              :max="stockForm.type === 'DECREASE' ? Math.max(1, currentStockRow.stock ?? currentStockRow.totalStock ?? 1) : 10000"
+              :step="1"
+              style="width: 100%;"
+            />
+          </el-form-item>
+
+          <div class="preview-stock-box">
+            <span class="preview-label">预计调整后可用库存：</span>
+            <span
+              class="preview-val"
+              :class="{ 'text-danger': stockForm.type === 'DECREASE' && (currentStockRow.stock ?? 0) - stockForm.quantity < 0 }"
+            >
+              {{
+                stockForm.type === 'INCREASE'
+                  ? (currentStockRow.stock ?? 0) + (stockForm.quantity || 0)
+                  : Math.max(0, (currentStockRow.stock ?? 0) - (stockForm.quantity || 0))
+              }} 件
+            </span>
+          </div>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="stockDialogVisible = false">取消</el-button>
+          <el-button
+            :type="stockForm.type === 'INCREASE' ? 'primary' : 'danger'"
+            :loading="stockSubmitting"
+            @click="handleConfirmAdjustStock"
+          >
+            确认{{ stockForm.type === 'INCREASE' ? '入库' : '核减' }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <style scoped>
+.gift-info-banner {
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.banner-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 6px;
+}
+
+.banner-meta {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.banner-meta strong {
+  color: var(--el-color-primary);
+}
+
+.preview-stock-box {
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.preview-label {
+  color: var(--el-text-color-regular);
+}
+
+.preview-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.preview-val.text-danger {
+  color: #ef4444;
+}
 .gift-page {
   display: flex;
   flex-direction: column;

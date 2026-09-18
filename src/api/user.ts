@@ -82,5 +82,5 @@ export function deleteUser(id: number): Promise<void> {
  * 重置管理员密码 (PUT /api/user/{id}/reset-password)
  */
 export function resetUserPassword(id: number, data?: SysUserResetPasswordDTO): Promise<void> {
-  return http.put<void>(`/user/${id}/reset-password`, data || { newPassword: '123' })
+  return http.put<void>(`/user/${id}/reset-password`, data || { newPassword: '123456' })
 }
