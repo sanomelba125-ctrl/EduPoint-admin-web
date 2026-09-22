@@ -465,12 +465,12 @@ const handleDelete = async (row: GiftVO) => {
         <el-form label-position="top" style="margin-top: 18px;">
           <el-form-item label="调整方式">
             <el-radio-group v-model="stockForm.type" size="default">
-              <el-radio-button value="INCREASE">🟢 盘盈入库 (+)</el-radio-button>
-              <el-radio-button value="DECREASE">🔴 盘亏报损 (-)</el-radio-button>
+              <el-radio-button value="INCREASE">🟢 入库 (+)</el-radio-button>
+              <el-radio-button value="DECREASE">🔴 报损 (-)</el-radio-button>
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item :label="stockForm.type === 'INCREASE' ? '入库增加件数' : '盘亏核减件数'">
+          <el-form-item :label="stockForm.type === 'INCREASE' ? '入库件数' : '核减件数'">
             <el-input-number
               v-model="stockForm.quantity"
               :min="1"
