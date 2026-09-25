@@ -38,6 +38,14 @@ export interface CertificateVerifyResult {
   verifyTime: string
 }
 
+export interface CertificateMetricsVO {
+  totalCount: number
+  validCount: number
+  revokedCount: number
+  expiredCount: number
+  verifyTotal: number
+}
+
 // 前端写死内置 Mock 数据台账（待后端接口完成后无缝对接）
 const mockCertificates: CertificateItem[] = [
   {
@@ -204,6 +212,15 @@ export async function revokeCertificateApi(id: number, revokeReason: string) {
     }
     throw error
   }
+}
+
+/**
+ * 8.5 管理端荣誉证书大盘聚合指标 (GET /certificate/metrics)
+ */
+export async function getCertificateMetricsApi(): Promise<CertificateMetricsVO> {
+  const res: any = await request.get('/certificate/metrics')
+  const data = res?.data !== undefined ? res.data : res
+  return data as CertificateMetricsVO
 }
 
 /**

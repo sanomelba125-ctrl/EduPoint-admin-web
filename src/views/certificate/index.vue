@@ -443,9 +443,11 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getCertificateListApi,
+  getCertificateMetricsApi,
   revokeCertificateApi,
   verifyCertificateApi,
   type CertificateItem,
+  type CertificateMetricsVO,
   type CertificateQueryParams,
   type CertificateVerifyResult
 } from '@/api/certificate'
@@ -465,25 +467,33 @@ const loading = ref(false)
 const certificateList = ref<CertificateItem[]>([])
 const total = ref(0)
 
-// 动态统计面板
+// 全量聚合指标状态
+const metrics = ref<CertificateMetricsVO>({
+  totalCount: 0,
+  validCount: 0,
+  revokedCount: 0,
+  expiredCount: 0,
+  verifyTotal: 0
+})
+
+const fetchMetrics = async () => {
+  try {
+    const res = await getCertificateMetricsApi()
+    if (res) {
+      metrics.value = res
+    }
+  } catch (error) {
+    console.warn('[Certificate] 获取证书大盘统计失败:', error)
+  }
+}
+
+// 动态统计面板（使用后端权威全量聚合数据，杜绝当前页推算与捏造）
 const stats = computed(() => {
-  const list = certificateList.value
-  const totalCount = total.value || list.length
-  let validCount = 0
-  let revokedCount = 0
-  let verifySum = 0
-
-  list.forEach(c => {
-    if (c.status === 1) validCount++
-    else if (c.status === 2) revokedCount++
-    verifySum += (c.verifyCount || 0)
-  })
-
   return {
-    total: totalCount,
-    valid: total.value === list.length ? validCount : Math.max(0, totalCount - revokedCount),
-    verifications: verifySum > 0 ? verifySum : totalCount * 3,
-    revoked: revokedCount
+    total: metrics.value.totalCount ?? total.value ?? 0,
+    valid: metrics.value.validCount ?? 0,
+    verifications: metrics.value.verifyTotal ?? 0,
+    revoked: metrics.value.revokedCount ?? 0
   }
 })
 
@@ -566,6 +576,7 @@ const submitRevoke = async () => {
     ElMessage.success('证书已成功撤销作废')
     revokeVisible.value = false
     fetchData()
+    fetchMetrics()
   } catch (error: any) {
     ElMessage.error(error.message || '撤销失败')
   } finally {
@@ -610,6 +621,7 @@ const handleExecQuickVerify = async () => {
 
 onMounted(() => {
   fetchData()
+  fetchMetrics()
 })
 </script>
 
