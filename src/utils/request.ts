@@ -63,14 +63,21 @@ request.interceptors.response.use(
       return Promise.reject(new Error(res.message || 'Unauthorized'))
     }
 
-    // 4. 5XX 状态码：服务端或业务接口错误 (500, 501, 502 等)，提取 message 错误信息并提示
+    // 4. 领域业务异常码 (2xxxx 用户域, 3xxxx 活动域, 4xxxx 积分商城域, 5xxxx 协同域)
+    if (res.code >= 10000) {
+      const errMsg = res.message || '业务操作未通过'
+      ElMessage.warning(errMsg)
+      return Promise.reject(new Error(errMsg))
+    }
+
+    // 5. 5XX 服务端异常码：提取 message 错误信息并告警
     if (res.code >= 500 && res.code < 600) {
-      const errMsg = res.message || `服务端业务错误 [${res.code}]`
+      const errMsg = res.message || `服务端内部错误 [${res.code}]`
       ElMessage.error(errMsg)
       return Promise.reject(new Error(errMsg))
     }
 
-    // 5. 其他异常状态码兜底提示
+    // 6. 其他异常状态码兜底提示
     const fallbackMsg = res.message || `接口请求异常 [${res.code}]`
     ElMessage.error(fallbackMsg)
     return Promise.reject(new Error(fallbackMsg))
