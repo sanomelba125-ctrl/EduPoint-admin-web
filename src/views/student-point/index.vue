@@ -173,6 +173,7 @@ const handleSubmitAdjust = async () => {
     fetchRecords()
     fetchMetrics()
   } catch (err: any) {
+    if (err?.code >= 10000 || err?.isBusiness) return
     ElMessage.error(err.message || '调账失败')
   } finally {
     submitLoading.value = false

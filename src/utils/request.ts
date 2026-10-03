@@ -12,6 +12,19 @@ export interface ApiResponse<T = any> {
   timestamp: number
 }
 
+export interface ApiError extends Error {
+  code?: number
+  isBusiness?: boolean
+  handled?: boolean
+}
+
+export function isBusinessError(error: unknown): boolean {
+  return Boolean(
+    (error as ApiError)?.isBusiness ||
+    ((error as ApiError)?.code !== undefined && ((error as ApiError).code as number) >= 10000)
+  )
+}
+
 // 创建 axios 实例：优先读取环境变量中配置的后端服务地址，支持直连后端(如 http://localhost:8080/api)或通过 Vite/Nginx 代理(/api)
 const request: AxiosInstance = axios.create({
   baseURL: (import.meta.env.VITE_API_BASE_URL as string) || '/api',
@@ -67,20 +80,30 @@ request.interceptors.response.use(
     if (res.code >= 10000) {
       const errMsg = res.message || '业务操作未通过'
       ElMessage.warning(errMsg)
-      return Promise.reject(new Error(errMsg))
+      const err = new Error(errMsg) as ApiError
+      err.code = res.code
+      err.isBusiness = true
+      err.handled = true
+      return Promise.reject(err)
     }
 
     // 5. 5XX 服务端异常码：提取 message 错误信息并告警
     if (res.code >= 500 && res.code < 600) {
       const errMsg = res.message || `服务端内部错误 [${res.code}]`
       ElMessage.error(errMsg)
-      return Promise.reject(new Error(errMsg))
+      const err = new Error(errMsg) as ApiError
+      err.code = res.code
+      err.handled = true
+      return Promise.reject(err)
     }
 
     // 6. 其他异常状态码兜底提示
     const fallbackMsg = res.message || `接口请求异常 [${res.code}]`
     ElMessage.error(fallbackMsg)
-    return Promise.reject(new Error(fallbackMsg))
+    const err = new Error(fallbackMsg) as ApiError
+    err.code = res.code
+    err.handled = true
+    return Promise.reject(err)
   },
   (error) => {
     // 处理 HTTP 网络层面的错误状态码 (如 HTTP 500, 502, 504, 404, 403 等)

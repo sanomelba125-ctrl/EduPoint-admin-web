@@ -153,6 +153,7 @@ const handleConfirmVerify = async () => {
     verifyModalVisible.value = false
     fetchOrders()
   } catch (err: any) {
+    if (err?.code >= 10000 || err?.isBusiness) return
     ElMessage.error(err.message || '核销失败')
   } finally {
     verifyLoading.value = false
@@ -181,6 +182,7 @@ const handleConfirmCancel = async () => {
     cancelModalVisible.value = false
     fetchOrders()
   } catch (err: any) {
+    if (err?.code >= 10000 || err?.isBusiness) return
     ElMessage.error(err.message || '取消订单失败')
   } finally {
     cancelLoading.value = false

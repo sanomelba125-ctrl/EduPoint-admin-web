@@ -127,6 +127,7 @@ const handleSubmit = async () => {
       dialogVisible.value = false
       fetchGifts()
     } catch (err: any) {
+      if (err?.code >= 10000 || err?.isBusiness) return
       ElMessage.error(err.message || '操作失败')
     } finally {
       submitLoading.value = false
@@ -173,6 +174,7 @@ const handleConfirmAdjustStock = async () => {
     stockDialogVisible.value = false
     fetchGifts()
   } catch (err: any) {
+    if (err?.code >= 10000 || err?.isBusiness) return
     ElMessage.error(err?.message || `${actionText}失败`)
   } finally {
     stockSubmitting.value = false
@@ -197,9 +199,8 @@ const handleToggleStatus = async (row: GiftVO) => {
     ElMessage.success(`礼品【${row.name}】已成功${actionText}`)
     fetchGifts()
   } catch (err: any) {
-    if (err !== 'cancel') {
-      ElMessage.error(err.message || '状态切换失败')
-    }
+    if (err === 'cancel' || err?.code >= 10000 || err?.isBusiness) return
+    ElMessage.error(err.message || '状态切换失败')
   }
 }
 
@@ -222,9 +223,8 @@ const handleDelete = async (row: GiftVO) => {
     }
     fetchGifts()
   } catch (err: any) {
-    if (err !== 'cancel') {
-      ElMessage.error(err.message || '删除失败')
-    }
+    if (err === 'cancel' || err?.code >= 10000 || err?.isBusiness) return
+    ElMessage.error(err.message || '删除失败')
   }
 }
 
