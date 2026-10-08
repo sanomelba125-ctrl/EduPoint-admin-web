@@ -46,7 +46,10 @@ export interface CertificateMetricsVO {
   verifyTotal: number
 }
 
-// 前端写死内置 Mock 数据台账（待后端接口完成后无缝对接）
+// 是否允许在真实接口失败时回退到内置演示数据（默认关闭，生产严禁静默伪造）
+const ALLOW_MOCK_FALLBACK = import.meta.env.VITE_ENABLE_CERT_MOCK === 'true'
+
+// 前端内置演示数据台账（仅在显式开启 VITE_ENABLE_CERT_MOCK=true 时作为离线演示兜底）
 const mockCertificates: CertificateItem[] = [
   {
     id: 1,
@@ -151,10 +154,17 @@ export async function getCertificateListApi(params: CertificateQueryParams) {
       return data
     }
   } catch (error) {
-    console.warn('[Certificate] API request failed, checking fallback:', error)
+    if (!ALLOW_MOCK_FALLBACK) {
+      throw error
+    }
+    console.warn('[Certificate] 演示模式：真实接口异常，回退至内置演示数据:', error)
   }
 
-  // 本地过滤与分页实现
+  if (!ALLOW_MOCK_FALLBACK) {
+    throw new Error('证书台账返回结构异常，请检查后端 /certificate/list 响应格式')
+  }
+
+  // 演示模式下的本地过滤与分页实现
   const page = params.page || 1
   const size = params.size || 10
 
@@ -194,24 +204,10 @@ export async function getCertificateListApi(params: CertificateQueryParams) {
 
 /**
  * 8.4 管理端撤销电子荣誉证书 (Revoke)
+ * 撤销为不可逆写操作，失败绝不伪装成功
  */
-export async function revokeCertificateApi(id: number, revokeReason: string) {
-  try {
-    const res: any = await request.put(`/certificate/${id}/revoke`, { revokeReason })
-    return res
-  } catch (error: any) {
-    console.warn('[Certificate] Revoke API call error, checking fallback:', error)
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message)
-    }
-    const target = mockCertificates.find(c => c.id === id)
-    if (target) {
-      target.status = 2
-      target.revokeReason = revokeReason
-      return true
-    }
-    throw error
-  }
+export async function revokeCertificateApi(id: number, revokeReason: string): Promise<any> {
+  return await request.put(`/certificate/${id}/revoke`, { revokeReason })
 }
 
 /**
@@ -228,8 +224,11 @@ export async function getCertificateMetricsApi(): Promise<CertificateMetricsVO> 
  */
 export async function verifyCertificateApi(certificateNo: string): Promise<CertificateVerifyResult> {
   const code = certificateNo.trim()
+  if (!code) {
+    throw new Error('请输入待核验的证书编号')
+  }
   try {
-    const res: any = await request.get(`/certificate/verify/${code}`)
+    const res: any = await request.get(`/certificate/verify/${encodeURIComponent(code)}`)
     const data = (res && res.data) ? res.data : res
     if (data && (data.certificateNo || data.title)) {
       return {
@@ -246,15 +245,19 @@ export async function verifyCertificateApi(certificateNo: string): Promise<Certi
       }
     }
   } catch (error: any) {
-    console.warn('[Certificate] Public verify API call error, checking fallback:', error)
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message)
+    if (!ALLOW_MOCK_FALLBACK) {
+      throw error
     }
+    console.warn('[Certificate] 演示模式：验真接口异常，回退至内置数据:', error)
   }
 
-  const target = mockCertificates.find(c => c.certificateNo.toUpperCase() === certificateNo.trim().toUpperCase())
+  if (!ALLOW_MOCK_FALLBACK) {
+    throw new Error('未检索到此防伪证书编号，请核实编号准确性')
+  }
+
+  const target = mockCertificates.find(c => c.certificateNo.toUpperCase() === code.toUpperCase())
   if (!target) {
-    throw new Error('未检索到此防伪证书编号，请核实后重试')
+    throw new Error('未检索到此防伪证书编号，请核实编号准确性')
   }
 
   // 姓名脱敏

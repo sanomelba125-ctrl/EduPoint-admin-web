@@ -386,7 +386,7 @@ async function handleLocateCurrent() {
         }
       })
     })
-  } catch (err: any) {
+  } catch {
     locatingCurrent.value = false
     ElMessage.warning('当前网络环境不支持高精度定位，可在地图上直接点击选址')
   }

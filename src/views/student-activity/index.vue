@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Search,
@@ -15,8 +15,10 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getActivityRecordList,
+  getActivityRecordMetrics,
   type StudentActivityRecordVO,
-  type ActivityRecordQuery
+  type ActivityRecordQuery,
+  type ActivityRecordMetricsVO
 } from '@/api/activity'
 
 // 详情弹窗
@@ -38,7 +40,7 @@ const {
   load: fetchRecords,
   handleSearch,
   handleReset,
-  handlePageChange,
+  handleCurrentChange,
   handleSizeChange
 } = usePageList<Omit<ActivityRecordQuery, 'page' | 'size'>, StudentActivityRecordVO>({
   initialFilters: {
@@ -57,21 +59,33 @@ const {
     })
   }
 })
+// 业务统计指标：对接后端全局聚合指标接口
+const metrics = ref<ActivityRecordMetricsVO>({
+  totalRecords: 0,
+  completedCount: 0,
+  pendingCount: 0,
+  cancelledCount: 0,
+  pointsDistributed: 0
+})
 
-// 业务统计指标：严格遵循 API.md 规范，基于已有的全量记录总数与当前记录数据进行统计，严禁调用未定义接口
-const metrics = computed(() => {
-  const list = recordList.value || []
-  return {
-    totalRecords: total.value || 0,
-    completedCount: list.filter((r) => r.status === 2).length,
-    pendingCount: list.filter((r) => r.status === 1).length,
-    cancelledCount: list.filter((r) => r.status === 3).length,
-    pointsDistributed: list.filter((r) => r.status === 2).reduce((sum, r) => sum + (r.pointsAwarded || 0), 0)
+const fetchMetrics = async () => {
+  try {
+    const res = await getActivityRecordMetrics()
+    if (res) {
+      metrics.value = res
+    }
+  } catch (error) {
+    console.warn('[StudentActivity] 获取打卡记录全局指标失败:', error)
   }
+}
+
+onMounted(() => {
+  fetchMetrics()
 })
 
 const handleRefreshAll = () => {
   fetchRecords()
+  fetchMetrics()
 }
 
 
@@ -354,7 +368,7 @@ const formatTime = (timeStr?: string) => {
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           @size-change="handleSizeChange"
-          @current-change="handlePageChange"
+          @current-change="handleCurrentChange"
         />
       </div>
     </el-card>

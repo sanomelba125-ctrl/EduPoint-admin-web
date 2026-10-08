@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   Search,
   Refresh,
   Check,
   Close,
-  Tickets,
-  Timer,
-  CircleCheck,
-  Coin,
   Key,
   Document,
   CircleClose
@@ -122,15 +118,19 @@ const doSearchPickupCode = () => {
     // 列表若没查到，通过关键词快速请求后端
     matchedOrder.value = null
     ElMessage.info('正在全库查询该提货码...')
-    queryParams.pickupCode = code
-    getGiftOrderList({ page: 1, size: 1, pickupCode: code }).then((res: any) => {
-      const records = res?.records || (Array.isArray(res) ? res : [])
-      if (records.length > 0) {
-        matchedOrder.value = records[0]
-      } else {
-        ElMessage.error('未查询到对应的有效兑换订单，请核对提货码')
-      }
-    })
+      getGiftOrderList({ page: 1, size: 1, pickupCode: code })
+        .then((res: any) => {
+          const records = res?.records || (Array.isArray(res) ? res : [])
+          if (records.length > 0) {
+            matchedOrder.value = records[0]
+          } else {
+            ElMessage.error('未查询到对应的有效兑换订单，请核对提货码')
+          }
+        })
+        .catch((err) => {
+          console.warn('[核销查询] 提货码全库查询异常:', err)
+          ElMessage.error('提货码查询失败，请检查网络或稍后重试')
+        })
   }
 }
 
@@ -201,8 +201,8 @@ const handleConfirmCancel = async () => {
             v-model="searchKeyword"
             placeholder="输入学号 / 姓名 / 提货码 / 订单号..."
             clearable
-            @keyup.enter="handleSearch"
             style="width: 280px;"
+            @keyup.enter="handleSearch"
           />
         </el-form-item>
 
@@ -272,7 +272,7 @@ const handleConfirmCancel = async () => {
         <el-table-column label="兑换礼品" min-width="180">
           <template #default="{ row }">
             <div class="gift-name">{{ row.giftName || '礼品' }}</div>
-            <div class="sub-text" v-if="row.receiverPhone">联系方式: {{ row.receiverPhone }}</div>
+            <div v-if="row.receiverPhone" class="sub-text">联系方式: {{ row.receiverPhone }}</div>
           </template>
         </el-table-column>
 

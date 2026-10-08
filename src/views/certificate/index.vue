@@ -66,7 +66,7 @@
 
     <!-- 搜索筛选区 -->
     <el-card shadow="never" class="search-card">
-      <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="84px">
+      <el-form ref="queryFormRef" :model="queryParams" :inline="true" label-width="84px">
         <el-form-item label="证书编号">
           <el-input
             v-model="queryParams.certificateNo"
@@ -256,7 +256,7 @@
       center
       class="cert-preview-dialog"
     >
-      <div v-if="currentCert" class="cert-paper-card" id="printableCertArea">
+      <div v-if="currentCert" id="printableCertArea" class="cert-paper-card">
         <div class="cert-watermark-txt">EDUPOINT CREDENTIAL</div>
         <div class="cert-sub-header">UNIVERSITY ACTIVITY CREDENTIAL</div>
         <div class="cert-main-title">荣 誉 证 书</div>
@@ -275,14 +275,14 @@
         <div class="cert-footer-meta">
           <div class="cert-meta-left">
             <div>防伪编号：<span class="mono-code">{{ currentCert.certificateNo }}</span></div>
-            <div>核验网址：<span class="verify-url">https://edupoint.campus.edu/verify</span></div>
+            <div>核验网址：<span class="verify-url">{{ verifyBaseUrl }}</span></div>
             <div v-if="currentCert.status === 2" class="cert-revoked-warning">
               【此凭证已被校方撤销作废】原因：{{ currentCert.revokeReason }}
             </div>
           </div>
           <div class="cert-meta-center">
             <qrcode-vue
-              :value="`https://edupoint.campus.edu/verify/${currentCert.certificateNo}`"
+              :value="getVerifyUrl(currentCert.certificateNo)"
               :size="64"
               level="M"
               render-as="svg"
@@ -386,8 +386,8 @@
       <!-- 核验结果展示卡片 -->
       <div v-if="verifyResult" class="verify-result-box" :class="{ revoked: verifyResult.status === 2 }">
         <div class="verify-status-banner">
-          <el-icon :size="20" v-if="verifyResult.status === 1"><CircleCheck /></el-icon>
-          <el-icon :size="20" v-else><CircleClose /></el-icon>
+          <el-icon v-if="verifyResult.status === 1" :size="20"><CircleCheck /></el-icon>
+          <el-icon v-else :size="20"><CircleClose /></el-icon>
           <span>{{ verifyResult.statusText }}</span>
         </div>
         <div class="verify-details">
@@ -475,27 +475,61 @@ const metrics = ref<CertificateMetricsVO>({
   expiredCount: 0,
   verifyTotal: 0
 })
+const metricsLoaded = ref(false)
+const metricsError = ref(false)
 
 const fetchMetrics = async () => {
+  metricsError.value = false
   try {
     const res = await getCertificateMetricsApi()
     if (res) {
       metrics.value = res
+      metricsLoaded.value = true
     }
   } catch (error) {
     console.warn('[Certificate] 获取证书大盘统计失败:', error)
+    metricsError.value = true
   }
 }
 
 // 动态统计面板（使用后端权威全量聚合数据，杜绝当前页推算与捏造）
 const stats = computed(() => {
+  const effectiveTotal = metricsLoaded.value
+    ? metrics.value.totalCount
+    : (total.value || metrics.value.totalCount || 0)
+
   return {
-    total: metrics.value.totalCount ?? total.value ?? 0,
+    total: effectiveTotal,
     valid: metrics.value.validCount ?? 0,
     verifications: metrics.value.verifyTotal ?? 0,
-    revoked: metrics.value.revokedCount ?? 0
+    revoked: metrics.value.revokedCount ?? 0,
+    isError: metricsError.value
   }
 })
+
+// 移动端公开核验基地址配置
+const verifyBaseUrl = computed(() => {
+  const envUrl = (import.meta.env.VITE_VERIFY_BASE_URL as string)?.trim()
+  if (envUrl) {
+    if (envUrl.startsWith('http://') || envUrl.startsWith('https://')) {
+      return envUrl
+    }
+    return `${window.location.origin}${envUrl.startsWith('/') ? '' : '/'}${envUrl}`
+  }
+  const isProd = import.meta.env.PROD
+  if (isProd) {
+    return `${window.location.origin}/h5/#/pages/certificate/verify`
+  }
+  return `${window.location.protocol}//${window.location.hostname}:5173/#/pages/certificate/verify`
+})
+
+const getVerifyUrl = (certNo?: string) => {
+  const base = verifyBaseUrl.value
+  if (!certNo) return base
+  return base.includes('?')
+    ? `${base}&no=${encodeURIComponent(certNo)}`
+    : `${base}?no=${encodeURIComponent(certNo)}`
+}
 
 // 预览弹窗状态
 const previewVisible = ref(false)
@@ -586,7 +620,7 @@ const submitRevoke = async () => {
 
 // 打开快速核验
 const openQuickVerifyModal = () => {
-  verifyInputCode.value = 'CERT-2026-ACT2-A89F3B12'
+  verifyInputCode.value = ''
   verifyResult.value = null
   quickVerifyVisible.value = true
 }

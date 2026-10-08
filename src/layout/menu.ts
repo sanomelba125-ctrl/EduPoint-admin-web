@@ -11,9 +11,8 @@ export interface MenuItem {
  * 从路由配置派生生成侧边栏菜单项
  * 支持根据当前用户的 RBAC 角色过滤未授权菜单，避免越权展示
  */
-export function buildMenuItems(userRole?: string, customRoutes?: RouteRecordRaw[]): MenuItem[] {
-  const targetRoutes = customRoutes || routes
-  const layoutRoute = targetRoutes.find((r) => r.path === '/')
+export function buildMenuItems(userRole?: string): MenuItem[] {
+  const layoutRoute = routes.find((r) => r.path === '/')
   return (layoutRoute?.children ?? [])
     .filter((child: RouteRecordRaw) => {
       // 1. 隐藏路由直接过滤

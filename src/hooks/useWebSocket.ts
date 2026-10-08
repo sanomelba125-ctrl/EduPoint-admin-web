@@ -4,6 +4,9 @@ import { ElNotification } from 'element-plus'
 const ws = ref<WebSocket | null>(null)
 const isConnected = ref(false)
 let reconnectTimer: any = null
+let reconnectAttempts = 0
+const MAX_RECONNECT_ATTEMPTS = 5
+let isManualClose = false
 
 /**
  * 子协议标记，必须与后端 WebSocketConstants.PROTOCOL_MARKER 保持一致。
@@ -29,6 +32,8 @@ export function useWebSocket() {
       return
     }
 
+    isManualClose = false
+
     // 握手必须携带登录凭据，缺失时直接跳过，避免反复发起必然被拒绝的连接
     const token = localStorage.getItem('admin_token')
     if (!token) {
@@ -36,8 +41,12 @@ export function useWebSocket() {
       return
     }
 
-    const host = window.location.hostname || 'localhost'
-    const wsUrl = `ws://${host}:8080/api/ws/${userType}/${userId}`
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host || 'localhost:3000'
+    const defaultWsUrl = `${protocol}//${host}/api/ws/${userType}/${userId}`
+    const wsUrl = (import.meta.env.VITE_WS_BASE_URL as string)
+      ? `${import.meta.env.VITE_WS_BASE_URL}/${userType}/${userId}`
+      : defaultWsUrl
 
     try {
       ws.value = new WebSocket(wsUrl, [WS_SUB_PROTOCOL_MARKER, token])
@@ -49,6 +58,7 @@ export function useWebSocket() {
 
     ws.value.onopen = () => {
       isConnected.value = true
+      reconnectAttempts = 0
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null
@@ -102,6 +112,10 @@ export function useWebSocket() {
 
     ws.value.onclose = () => {
       isConnected.value = false
+      if (isManualClose) {
+        console.log('[WebSocket] 已手动断开连接，无需自动重连')
+        return
+      }
       console.log('[WebSocket] 连接断开，准备重试')
       scheduleReconnect(userType, userId)
     }
@@ -112,13 +126,19 @@ export function useWebSocket() {
     }
   }
 
-  // 断线重连机制（5秒重试）
+  // 断线重连机制（5秒重试，带上限）
   const scheduleReconnect = (userType: 'admin' | 'student', userId: string | number) => {
+    if (isManualClose) return
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      console.warn(`[WebSocket] 已达到最大重连次数(${MAX_RECONNECT_ATTEMPTS})，停止自动重连`)
+      return
+    }
     if (reconnectTimer) return
+    reconnectAttempts++
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
       const token = localStorage.getItem('admin_token')
-      if (token) {
+      if (token && !isManualClose) {
         connect(userType, userId)
       }
     }, 5000)
@@ -126,6 +146,8 @@ export function useWebSocket() {
 
   // 手动断开
   const disconnect = () => {
+    isManualClose = true
+    reconnectAttempts = 0
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null

@@ -8,7 +8,6 @@ import {
   getGiftList,
   createGift,
   updateGift,
-  restockGift,
   adjustGiftStock,
   deleteGift,
   toggleGiftStatus,

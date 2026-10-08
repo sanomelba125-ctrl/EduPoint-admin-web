@@ -119,13 +119,6 @@ export function updateGift(data: GiftUpdateDTO): Promise<GiftVO> {
 }
 
 /**
- * 礼品补货：入库总量与可用库存同步增加 (POST /api/gift/{id}/restock?quantity=N)
- */
-export function restockGift(id: number, quantity: number): Promise<GiftVO> {
-  return http.post<GiftVO>(`/gift/${id}/restock`, null, { params: { quantity } })
-}
-
-/**
  * 礼品库存调整（改库存：正数入库补货，负数盘亏核减）(POST /api/gift/{id}/stock/adjust?quantity=N)
  */
 export function adjustGiftStock(id: number, quantity: number): Promise<GiftVO> {

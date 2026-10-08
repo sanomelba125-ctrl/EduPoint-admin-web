@@ -176,7 +176,10 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   const userStore = useUserStore()
-  if (!userStore.userInfo) {
+  const requiredRoles = to.meta.roles as string[] | undefined
+
+  // 若本地尚无用户信息或目标路由需要特定角色鉴权，直接从后端拉取权威身份事实源，防止 localStorage 伪造角色越权
+  if (!userStore.userInfo || (requiredRoles && requiredRoles.length > 0)) {
     try {
       const user = await getCurrentUserApi()
       userStore.setUserInfo(user)
@@ -188,7 +191,6 @@ router.beforeEach(async (to, _from, next) => {
 
   // 严格角色权限校验拦截
   const userRole = userStore.userInfo?.role
-  const requiredRoles = to.meta.roles as string[] | undefined
   if (requiredRoles && requiredRoles.length > 0) {
     if (!userRole || !requiredRoles.includes(userRole)) {
       ElMessage.warning('权限不足：当前角色无权访问该功能模块')

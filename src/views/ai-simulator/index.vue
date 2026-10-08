@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import { ref, reactive, nextTick, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import {
-  ChatDotRound,
-  Search,
   Position,
   Delete,
-  VideoPlay,
   Cpu,
   Tools,
-  Timer,
-  Warning,
   CircleCheck,
   VideoPause
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
 
 interface ChatMessage {
   id: string
@@ -141,7 +137,8 @@ const handleSend = async () => {
       studentNo = customStudentNo.value.trim() || undefined
     }
 
-    const token = localStorage.getItem('admin_token') || ''
+    const userStore = useUserStore()
+    const token = userStore.token || localStorage.getItem('admin_token') || ''
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     }
@@ -149,7 +146,8 @@ const handleSend = async () => {
       headers['satoken'] = token
     }
 
-    const res = await fetch('/api/ai/chat/stream', {
+    const apiBase = (import.meta.env.VITE_API_BASE_URL as string) || '/api'
+    const res = await fetch(`${apiBase}/ai/chat/stream`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -232,6 +230,7 @@ const handleSend = async () => {
               assistantMsg.content += data.content
             }
           } catch (e) {
+            console.warn('[AI Simulator] 解析 SSE 数据包失败:', e)
           }
         }
       }
@@ -246,6 +245,13 @@ const handleSend = async () => {
     debugInfo.totalMs = Date.now() - startTime
   }
 }
+
+onUnmounted(() => {
+  if (abortController.value) {
+    abortController.value.abort()
+    abortController.value = null
+  }
+})
 </script>
 
 <template>

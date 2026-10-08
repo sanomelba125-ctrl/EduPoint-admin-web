@@ -33,11 +33,8 @@ export interface UsePageListReturn<F extends object, T> {
   page: Ref<number>
   size: Ref<number>
   load: () => Promise<void>
-  search: () => Promise<void>
-  reset: () => Promise<void>
   handleSearch: () => Promise<void>
   handleReset: () => Promise<void>
-  handlePageChange: (newPage?: number) => Promise<void>
   handleCurrentChange: (newPage?: number) => Promise<void>
   handleSizeChange: (newSize?: number) => Promise<void>
 }
@@ -160,11 +157,8 @@ export function usePageList<F extends object, T>(
     page,
     size,
     load,
-    search: handleSearch,
-    reset: handleReset,
     handleSearch,
     handleReset,
-    handlePageChange: handleCurrentChange,
     handleCurrentChange,
     handleSizeChange
   }

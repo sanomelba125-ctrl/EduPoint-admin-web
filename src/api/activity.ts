@@ -100,6 +100,14 @@ export interface StudentActivityRecordVO {
   updateTime?: string
 }
 
+export interface ActivityRecordMetricsVO {
+  totalRecords: number
+  completedCount: number
+  pendingCount: number
+  cancelledCount: number
+  pointsDistributed: number
+}
+
 // 别名兼容
 export type ActivityRecordVO = StudentActivityRecordVO
 
@@ -156,7 +164,10 @@ export function getActivityRecordList(params?: ActivityRecordQuery): Promise<Pag
 }
 
 /**
- * 别名兼容 getActivityRecords
+ * 管理端全量聚合打卡记录指标统计
+ * GET /api/activity/record/metrics
  */
-export const getActivityRecords = getActivityRecordList
+export function getActivityRecordMetrics(): Promise<ActivityRecordMetricsVO> {
+  return http.get<ActivityRecordMetricsVO>('/activity/record/metrics')
+}
 

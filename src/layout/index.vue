@@ -20,6 +20,7 @@ import {
   deleteNoticeApi,
   type SysNoticeVO
 } from '@/api/notice'
+import { logoutApi } from '@/api/auth'
 import { ElMessage } from 'element-plus'
 import { buildMenuItems } from './menu'
 
@@ -210,10 +211,16 @@ onUnmounted(() => {
   disconnect()
 })
 
-const handleLogout = () => {
-  disconnect()
-  userStore.logout()
-  router.push('/login')
+const handleLogout = async () => {
+  try {
+    await logoutApi()
+  } catch (error) {
+    console.warn('[Layout] 调用退出登录接口失败:', error)
+  } finally {
+    disconnect()
+    userStore.logout()
+    router.push('/login')
+  }
 }
 </script>
 

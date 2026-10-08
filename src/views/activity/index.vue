@@ -29,7 +29,7 @@ const {
   load: loadData,
   handleSearch,
   handleReset: resetPageFilters,
-  handlePageChange,
+  handleCurrentChange,
   handleSizeChange
 } = usePageList<Omit<ActivityPageQuery, 'page' | 'size'>, ActivityVO>({
   initialFilters: {
@@ -400,7 +400,7 @@ const countdownColor = computed(() => {
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
           background
-          @current-change="handlePageChange"
+          @current-change="handleCurrentChange"
           @size-change="handleSizeChange"
         />
       </div>
