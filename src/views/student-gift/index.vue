@@ -237,19 +237,20 @@ const handleConfirmCancel = async () => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 320px)"
         :data="orderList"
         stripe
         style="width: 100%"
         row-key="id"
       >
-        <el-table-column label="订单编号 / 时间" width="180">
+        <el-table-column label="订单编号 / 时间" width="140">
           <template #default="{ row }">
             <div class="order-no-text">{{ row.orderNo }}</div>
             <div class="sub-text">{{ row.createTime }}</div>
           </template>
         </el-table-column>
 
-        <el-table-column label="申请学生" min-width="150">
+        <el-table-column label="申请学生" min-width="120">
           <template #default="{ row }">
             <div class="student-name">
               {{ row.studentName || row.receiverName || '学生' }}
@@ -269,32 +270,32 @@ const handleConfirmCancel = async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="兑换礼品" min-width="180">
+        <el-table-column label="兑换礼品" min-width="135">
           <template #default="{ row }">
             <div class="gift-name">{{ row.giftName || '礼品' }}</div>
             <div v-if="row.receiverPhone" class="sub-text">联系方式: {{ row.receiverPhone }}</div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="quantity" label="数量" width="90" align="center">
+        <el-table-column prop="quantity" label="数量" width="65" align="center">
           <template #default="{ row }">
             <el-tag size="small" type="primary" effect="plain">{{ row.quantity }} 件</el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column prop="pointsCost" label="消耗积分" width="120" align="right">
+        <el-table-column prop="pointsCost" label="消耗积分" width="95" align="right">
           <template #default="{ row }">
-            <span class="points-cost">-{{ row.pointsCost }} <small>pts</small></span>
+            <span class="points-cost">-{{ row.pointsCost }} <small>积分</small></span>
           </template>
         </el-table-column>
 
-        <el-table-column label="提货凭证码" width="140" align="center">
+        <el-table-column label="提货凭证码" width="115" align="center">
           <template #default="{ row }">
             <span class="order-code-badge">{{ row.pickupCode }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" label="履约状态" width="110" align="center">
+        <el-table-column prop="status" label="履约状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag
               :type="row.status === 1 ? 'warning' : row.status === 2 ? 'success' : 'info'"
@@ -306,7 +307,7 @@ const handleConfirmCancel = async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="签收备注 / 履约说明" min-width="170">
+        <el-table-column label="备注说明" min-width="130">
           <template #default="{ row }">
             <div v-if="row.status === 2">
               <span v-if="row.remark" class="remark-text-cell" :title="row.remark">
@@ -326,7 +327,7 @@ const handleConfirmCancel = async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="核销/取消时间" width="170">
+        <el-table-column label="核销/取消时间" width="130">
           <template #default="{ row }">
             <span class="sub-text">
               {{ row.deliveryTime || row.cancelTime || '-' }}
@@ -334,7 +335,7 @@ const handleConfirmCancel = async () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="170" fixed="right" align="right">
+        <el-table-column label="操作" width="145" fixed="right" align="right">
           <template #default="{ row }">
             <template v-if="row.status === 1">
               <el-button
@@ -426,7 +427,7 @@ const handleConfirmCancel = async () => {
           </div>
           <div>
             <span class="label">扣减积分：</span>
-            <strong class="points-warn">{{ matchedOrder.pointsCost }} pts</strong>
+            <strong class="points-warn">{{ matchedOrder.pointsCost }} 积分</strong>
           </div>
           <div style="grid-column: span 2;">
             <span class="label">下单时间：</span>
@@ -487,7 +488,7 @@ const handleConfirmCancel = async () => {
         <div class="cancel-detail">
           <div>订单编号: {{ currentCancelOrder.orderNo }}</div>
           <div>兑换商品: {{ currentCancelOrder.giftName }} x {{ currentCancelOrder.quantity }} 件</div>
-          <div>消耗积分: <strong>{{ currentCancelOrder.pointsCost }} pts</strong></div>
+          <div>消耗积分: <strong>{{ currentCancelOrder.pointsCost }} 积分</strong></div>
         </div>
         <el-form label-position="top" style="margin-top: 14px;">
           <el-form-item label="退单驳回原因">
@@ -519,7 +520,7 @@ const handleConfirmCancel = async () => {
 }
 
 .filter-card, .table-card {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .filter-form {
@@ -575,7 +576,7 @@ const handleConfirmCancel = async () => {
 .pickup-verify-box {
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -602,7 +603,7 @@ const handleConfirmCancel = async () => {
 
 .verify-result-card {
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 14px;
 }
 

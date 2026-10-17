@@ -258,7 +258,7 @@ onUnmounted(() => {
   <div class="ai-simulator-page">
     <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">🤖 AI 智能体调试中枢 (Function Calling 仿真工作台)</h2>
+        <h2 class="page-title">AI 智能体调试中枢 (Function Calling 仿真工作台)</h2>
         <p class="page-desc">基于大模型两轮握手与本地工具降级，支持无缝切换学生身份并实时观测后端 5 大只读工具执行轨迹与 Fact JSON。</p>
       </div>
     </div>
@@ -293,7 +293,26 @@ onUnmounted(() => {
               :class="['chat-bubble-row', msg.role]"
             >
               <div :class="['avatar-icon', msg.role]">
-                {{ msg.role === 'user' ? '学' : '🤖' }}
+                <!-- 助手头像用线性机器人图标（与移动端 AI 会话保持一致），用户头像用首字母 -->
+                <svg
+                  v-if="msg.role === 'assistant'"
+                  class="avatar-svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 8V4H8" />
+                  <rect width="16" height="12" x="4" y="8" rx="2" />
+                  <path d="M2 14h2" />
+                  <path d="M20 14h2" />
+                  <path d="M15 13v2" />
+                  <path d="M9 13v2" />
+                </svg>
+                <span v-else>学</span>
               </div>
               <div class="bubble-content-wrap">
                 <!-- 引擎微标 -->
@@ -318,14 +337,14 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- 快捷提问气泡 -->
+          <!-- 快捷提问气泡（统一中性色：五个指令语义平等，避免用红/绿/橙误导危险或成功语义） -->
           <div class="quick-chips-bar">
             <span class="chips-title">快捷测试：</span>
-            <el-tag class="chip" size="small" @click="handleQuickAsk('我当前还有多少可用积分？最近有什么收支明细？')">查我的积分</el-tag>
-            <el-tag class="chip" size="small" type="success" @click="handleQuickAsk('我兑换的奖品订单有哪些？核销码是多少？')">查我的订单</el-tag>
-            <el-tag class="chip" size="small" type="warning" @click="handleQuickAsk('我报名了哪些活动？有在候补排队的吗？')">查我的活动</el-tag>
-            <el-tag class="chip" size="small" type="danger" @click="handleQuickAsk('查一下我的荣誉结项证书和防伪编号')">查我的证书</el-tag>
-            <el-tag class="chip" size="small" type="info" @click="handleQuickAsk('活动如果人数已满怎么候补？')">候补规则</el-tag>
+            <el-tag class="chip" size="small" effect="plain" @click="handleQuickAsk('我当前还有多少可用积分？最近有什么收支明细？')">查我的积分</el-tag>
+            <el-tag class="chip" size="small" effect="plain" @click="handleQuickAsk('我兑换的奖品订单有哪些？核销码是多少？')">查我的订单</el-tag>
+            <el-tag class="chip" size="small" effect="plain" @click="handleQuickAsk('我报名了哪些活动？有在候补排队的吗？')">查我的活动</el-tag>
+            <el-tag class="chip" size="small" effect="plain" @click="handleQuickAsk('查一下我的荣誉结项证书和防伪编号')">查我的证书</el-tag>
+            <el-tag class="chip" size="small" effect="plain" @click="handleQuickAsk('活动如果人数已满怎么候补？')">候补规则</el-tag>
           </div>
 
           <!-- 提问输入操作栏 -->
@@ -459,20 +478,20 @@ onUnmounted(() => {
   background: #ffffff;
   padding: 16px 20px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .page-title {
   margin: 0 0 6px 0;
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--app-text-1);
 }
 
 .page-desc {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--app-text-2);
 }
 
 .workbench-layout {
@@ -492,7 +511,7 @@ onUnmounted(() => {
 .phone-panel {
   background: #ffffff;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
   padding: 16px;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
 }
@@ -507,24 +526,24 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  background: #f8fafc;
+  background: var(--app-fill);
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .bar-label {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--app-text-2);
   margin-right: 8px;
 }
 
 .phone-chat-body {
   height: 480px;
   overflow-y: auto;
-  background: #f1f5f9;
-  border-radius: 10px;
+  background: var(--app-border-lighter);
+  border-radius: 8px;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -553,13 +572,18 @@ onUnmounted(() => {
 }
 
 .avatar-icon.user {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--app-color-primary), var(--app-color-primary));
   color: #ffffff;
 }
 
 .avatar-icon.assistant {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--app-color-success), var(--app-color-success));
   color: #ffffff;
+}
+
+.avatar-svg {
+  width: 19px;
+  height: 19px;
 }
 
 .bubble-content-wrap {
@@ -582,11 +606,11 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
-  border-radius: 6px;
+  background: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: 8px;
   font-size: 11px;
-  color: #92400e;
+  color: var(--app-color-warning);
 }
 
 .tc-time {
@@ -598,7 +622,7 @@ onUnmounted(() => {
 
 .bubble-text {
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -606,21 +630,21 @@ onUnmounted(() => {
 }
 
 .bubble-text.user {
-  background: #3b82f6;
+  background: var(--app-color-primary);
   color: #ffffff;
   border-bottom-right-radius: 2px;
 }
 
 .bubble-text.assistant {
   background: #ffffff;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
+  color: var(--app-text-1);
+  border: 1px solid var(--app-border);
   border-bottom-left-radius: 2px;
 }
 
 .msg-timestamp {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--app-text-3);
 }
 
 /* 快捷测试指令条 */
@@ -633,7 +657,7 @@ onUnmounted(() => {
 
 .chips-title {
   font-size: 12px;
-  color: #64748b;
+  color: var(--app-text-2);
   font-weight: 600;
 }
 
@@ -667,7 +691,7 @@ onUnmounted(() => {
 
 .inspector-card {
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .card-header {
@@ -682,7 +706,7 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--app-text-1);
 }
 
 .kpi-metrics-row {
@@ -693,8 +717,8 @@ onUnmounted(() => {
 }
 
 .kpi-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--app-fill);
+  border: 1px solid var(--app-border);
   padding: 12px;
   border-radius: 8px;
   text-align: center;
@@ -702,24 +726,24 @@ onUnmounted(() => {
 
 .kpi-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--app-text-2);
   margin-bottom: 4px;
 }
 
 .kpi-val {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--app-text-1);
 }
 
 .kpi-val.highlight {
   font-size: 13px;
-  color: #2563eb;
+  color: var(--app-color-primary);
 }
 
 .trajectory-section {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--app-fill);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 14px;
   margin-bottom: 16px;
@@ -731,7 +755,7 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--app-text-1);
   margin-bottom: 12px;
 }
 
@@ -749,31 +773,31 @@ onUnmounted(() => {
 
 .traj-label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--app-text-2);
   font-weight: 600;
 }
 
 .traj-val {
   font-size: 13px;
-  color: #0f172a;
+  color: var(--app-text-1);
 }
 
 .font-mono {
   font-family: monospace;
   font-weight: 600;
-  color: #2563eb;
+  color: var(--app-color-primary);
 }
 
 .font-green {
   font-weight: 700;
-  color: #059669;
+  color: var(--app-color-success);
 }
 
 .json-code {
-  background: #0f172a;
-  color: #38bdf8;
+  background: var(--app-text-1);
+  color: var(--app-color-primary);
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: monospace;
   font-size: 12px;
   max-height: 220px;
@@ -784,7 +808,7 @@ onUnmounted(() => {
 }
 
 .fact-json {
-  color: #4ade80;
+  color: var(--app-color-success);
 }
 
 .empty-trajectory {
@@ -792,8 +816,8 @@ onUnmounted(() => {
 }
 
 .security-guard-box {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--el-color-success-light-9);
+  border: 1px solid var(--el-color-success-light-5);
   border-radius: 8px;
   padding: 12px;
 }
@@ -804,7 +828,7 @@ onUnmounted(() => {
   gap: 6px;
   font-size: 13px;
   font-weight: 700;
-  color: #166534;
+  color: var(--app-color-success);
   margin-bottom: 4px;
 }
 
@@ -812,6 +836,6 @@ onUnmounted(() => {
   margin: 0;
   font-size: 12px;
   line-height: 1.5;
-  color: #15803d;
+  color: var(--app-color-success);
 }
 </style>

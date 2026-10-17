@@ -3,7 +3,9 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'
+// 样式顺序不可调换：Element 官方样式在前，全局设计规范在后（后者覆盖前者）
 import 'element-plus/dist/index.css'
+import './styles/index.css'
 
 const app = createApp(App)
 const pinia = createPinia()

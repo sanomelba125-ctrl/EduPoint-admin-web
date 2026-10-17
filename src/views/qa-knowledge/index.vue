@@ -361,18 +361,19 @@ const goToAiSimulator = () => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 436px)"
         :data="knowledgeList"
         stripe
         style="width: 100%"
         row-key="id"
       >
-        <el-table-column label="编号" width="90">
+        <el-table-column label="编号" width="86">
           <template #default="{ row }">
             <span class="qa-code">#QA{{ String(row.id).padStart(3, '0') }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="分类" width="110">
+        <el-table-column label="分类" width="100">
           <template #default="{ row }">
             <el-tag :type="getCategoryTagType(row.category)" effect="light" size="small">
               {{ getCategoryLabel(row.category) }}
@@ -380,13 +381,13 @@ const goToAiSimulator = () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="常见问题 / 匹配意图" min-width="220" show-overflow-tooltip>
+        <el-table-column label="常见问题 / 匹配意图" min-width="185" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="question-title">{{ row.question }}</div>
           </template>
         </el-table-column>
 
-        <el-table-column label="官方标准解答内容" min-width="280">
+        <el-table-column label="官方标准解答内容" min-width="200">
           <template #default="{ row }">
             <el-tooltip
               placement="top"
@@ -404,7 +405,7 @@ const goToAiSimulator = () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="匹配关键词" min-width="180">
+        <el-table-column label="匹配关键词" min-width="160">
           <template #default="{ row }">
             <div class="tags-wrap">
               <el-tag
@@ -421,7 +422,7 @@ const goToAiSimulator = () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="查阅热度" width="100" align="center">
+        <el-table-column label="查阅热度" width="95" align="center">
           <template #default="{ row }">
             <div class="view-count-badge">
               <el-icon class="view-icon"><View /></el-icon>
@@ -430,28 +431,28 @@ const goToAiSimulator = () => {
           </template>
         </el-table-column>
 
-        <el-table-column label="权重" width="80" align="center" prop="sortOrder" />
+        <el-table-column label="权重" width="76" align="center" prop="sortOrder" />
 
-        <el-table-column label="生效状态" width="100" align="center">
+        <el-table-column label="生效状态" width="95" align="center">
           <template #default="{ row }">
             <el-switch
               :model-value="row.status === 1"
-              active-color="#10b981"
-              inactive-color="#d1d5db"
+              active-color="var(--app-color-success)"
+              inactive-color="var(--app-border)"
               @change="handleToggleStatus(row)"
             />
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column label="操作" width="216" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" :icon="View" @click="openPreview(row)">
+            <el-button link type="primary" :icon="View" size="small" @click="openPreview(row)">
               预览
             </el-button>
-            <el-button link type="primary" :icon="Edit" @click="openEditDialog(row)">
+            <el-button link type="primary" :icon="Edit" size="small" @click="openEditDialog(row)">
               编辑
             </el-button>
-            <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">
+            <el-button link type="danger" :icon="Delete" size="small" @click="handleDelete(row)">
               删除
             </el-button>
           </template>
@@ -642,7 +643,7 @@ const goToAiSimulator = () => {
 
 .stat-card {
   border-radius: 8px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--app-border-lighter);
   transition: all 0.3s ease;
 }
 
@@ -660,7 +661,7 @@ const goToAiSimulator = () => {
 .stat-icon-wrapper {
   width: 48px;
   height: 48px;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -669,19 +670,19 @@ const goToAiSimulator = () => {
 }
 
 .bg-blue {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--app-color-primary), var(--app-color-primary));
 }
 
 .bg-green {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--app-color-success), var(--app-color-success));
 }
 
 .bg-orange {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--app-color-warning), var(--app-color-warning));
 }
 
 .bg-purple {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(135deg, var(--app-accent-purple-light), var(--app-accent-purple-dark));
 }
 
 .stat-info {
@@ -690,7 +691,7 @@ const goToAiSimulator = () => {
 
 .stat-title {
   font-size: 13px;
-  color: #64748b;
+  color: var(--app-text-2);
   margin-bottom: 4px;
 }
 
@@ -701,19 +702,19 @@ const goToAiSimulator = () => {
 }
 
 .text-blue {
-  color: #2563eb;
+  color: var(--app-color-primary);
 }
 
 .text-green {
-  color: #059669;
+  color: var(--app-color-success);
 }
 
 .text-orange {
-  color: #d97706;
+  color: var(--app-color-warning);
 }
 
 .text-purple {
-  color: #7c3aed;
+  color: var(--app-accent-purple);
 }
 
 .font-sm {
@@ -745,18 +746,18 @@ const goToAiSimulator = () => {
   font-family: monospace;
   font-size: 13px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--app-text-2);
 }
 
 .question-title {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--app-text-1);
   font-size: 14px;
 }
 
 .answer-text {
   font-size: 13px;
-  color: #475569;
+  color: var(--app-text-2);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -774,11 +775,11 @@ const goToAiSimulator = () => {
 
 .keyword-tag {
   border-radius: 4px;
-  color: #475569;
+  color: var(--app-text-2);
 }
 
 .empty-text {
-  color: #94a3b8;
+  color: var(--app-text-3);
   font-size: 13px;
 }
 
@@ -787,7 +788,7 @@ const goToAiSimulator = () => {
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #f59e0b;
+  color: var(--app-color-warning);
   font-weight: 600;
 }
 
@@ -803,7 +804,7 @@ const goToAiSimulator = () => {
 
 .form-tip {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--app-text-3);
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -820,8 +821,8 @@ const goToAiSimulator = () => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: #f8fafc;
-  border-radius: 6px;
+  background: var(--app-fill);
+  border-radius: 8px;
   font-size: 13px;
 }
 
@@ -830,18 +831,18 @@ const goToAiSimulator = () => {
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: #2563eb;
+  color: var(--app-color-primary);
 }
 
 .meta-view {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #64748b;
+  color: var(--app-text-2);
 }
 
 .chat-mockup-body {
-  background: #f1f5f9;
+  background: var(--app-border-lighter);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -876,18 +877,18 @@ const goToAiSimulator = () => {
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--app-color-primary), var(--app-color-primary));
   color: #ffffff;
 }
 
 .ai-avatar {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--app-color-success), var(--app-color-success));
   color: #ffffff;
   font-size: 16px;
 }
 
 .user-bubble {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, var(--app-color-primary), var(--app-color-primary));
   color: #ffffff;
   padding: 10px 14px;
   border-radius: 12px 2px 12px 12px;
@@ -915,7 +916,7 @@ const goToAiSimulator = () => {
 .ai-name {
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .authority-badge {
@@ -923,8 +924,8 @@ const goToAiSimulator = () => {
   align-items: center;
   gap: 3px;
   font-size: 11px;
-  color: #059669;
-  background: #ecfdf5;
+  color: var(--app-color-success);
+  background: var(--el-color-success-light-9);
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 500;
@@ -932,24 +933,24 @@ const goToAiSimulator = () => {
 
 .bubble-content {
   font-size: 13px;
-  color: #334155;
+  color: var(--app-text-2);
   line-height: 1.6;
   white-space: pre-wrap;
 }
 
 .preview-footer-info {
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--app-border);
   padding-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--app-text-2);
 }
 
 .preview-footer-info .label {
   font-weight: 600;
-  color: #475569;
+  color: var(--app-text-2);
 }
 
 </style>

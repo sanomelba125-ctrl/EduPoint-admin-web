@@ -72,7 +72,7 @@ export function useWebSocket() {
 
       try {
         const data = JSON.parse(event.data)
-        const title = data.title || (data.type === 'gift_exchange' ? '🔔 新礼品兑换订单' : '🔔 实时系统通知')
+        const title = data.title || (data.type === 'gift_exchange' ? '新礼品兑换订单' : '实时系统通知')
         const message = data.content || data.msg || data.message || JSON.stringify(data)
 
         ElNotification({
@@ -93,7 +93,7 @@ export function useWebSocket() {
         })
       } catch {
         ElNotification({
-          title: '🔔 实时系统通知',
+          title: '实时系统通知',
           message: event.data,
           type: 'info',
           position: 'top-right',

@@ -139,7 +139,7 @@ const handleLogin = async () => {
   width: 44px;
   height: 44px;
   margin: 0 auto 12px;
-  background: #409eff;
+  background: var(--app-color-primary);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -156,14 +156,14 @@ const handleLogin = async () => {
 .brand-title {
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--app-text-1);
   margin: 0;
   letter-spacing: 0.5px;
 }
 
 .brand-sub {
   font-size: 12px;
-  color: #909399;
+  color: var(--app-text-3);
   margin-top: 6px;
   margin-bottom: 0;
 }
@@ -174,7 +174,7 @@ const handleLogin = async () => {
 
 .login-form :deep(.el-form-item__label) {
   font-size: 13px;
-  color: #606266;
+  color: var(--app-text-2);
   font-weight: 500;
   padding-bottom: 4px;
 }

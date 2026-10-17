@@ -308,6 +308,7 @@ const handleDelete = (row: SysUserVO) => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 320px)"
         :data="userList"
         stripe
         border
@@ -316,17 +317,17 @@ const handleDelete = (row: SysUserVO) => {
       >
         <el-table-column prop="id" label="ID" width="70" align="center" />
 
-        <el-table-column label="头像" width="75" align="center">
+        <el-table-column label="头像" width="70" align="center">
           <template #default="{ row }">
-            <el-avatar :size="36" :src="row.avatar">
+            <el-avatar :size="36" :src="row.avatar || undefined" class="avatar-letter">
               {{ row.nickname ? row.nickname.charAt(0) : '管' }}
             </el-avatar>
           </template>
         </el-table-column>
 
-        <el-table-column prop="username" label="登录账号" width="140">
+        <el-table-column prop="username" label="登录账号" width="125">
           <template #default="{ row }">
-            <span style="font-weight: 600; color: #303133;">{{ row.username }}</span>
+            <span style="font-weight: 600; color: var(--app-text-1);">{{ row.username }}</span>
             <el-tag
               v-if="isSuperAdmin(row)"
               size="small"
@@ -339,9 +340,9 @@ const handleDelete = (row: SysUserVO) => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="nickname" label="管理员姓名" min-width="140" />
+        <el-table-column prop="nickname" label="管理员姓名" min-width="125" />
 
-        <el-table-column prop="role" label="权限角色" width="140" align="center">
+        <el-table-column prop="role" label="权限角色" width="125" align="center">
           <template #default="{ row }">
             <el-tag :type="getRoleTag(row.role).type" effect="light">
               {{ getRoleTag(row.role).label }}
@@ -349,13 +350,13 @@ const handleDelete = (row: SysUserVO) => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="phone" label="联系电话" width="140" align="center">
+        <el-table-column prop="phone" label="联系电话" width="125" align="center">
           <template #default="{ row }">
             {{ row.phone || '-' }}
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" label="账号状态" width="110" align="center">
+        <el-table-column prop="status" label="账号状态" width="100" align="center">
           <template #default="{ row }">
             <el-tooltip
               :disabled="!isSuperAdmin(row)"
@@ -377,7 +378,7 @@ const handleDelete = (row: SysUserVO) => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="createTime" label="创建时间" min-width="170" align="center" />
+        <el-table-column prop="createTime" label="创建时间" min-width="148" align="center" />
 
         <el-table-column label="操作" width="230" fixed="right" align="center">
           <template #default="{ row }">

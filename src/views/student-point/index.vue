@@ -208,7 +208,7 @@ onMounted(() => {
         <div class="metric-info">
           <span class="metric-title">活动打卡发放 (EARN)</span>
           <div class="metric-number success">
-            +{{ metrics.totalEarnedPoints }} <span class="metric-unit">pts</span>
+            +{{ metrics.totalEarnedPoints }} <span class="metric-unit">积分</span>
           </div>
         </div>
         <div class="metric-icon-box success">
@@ -220,7 +220,7 @@ onMounted(() => {
         <div class="metric-info">
           <span class="metric-title">商城兑换消耗 (EXCHANGE)</span>
           <div class="metric-number danger">
-            -{{ metrics.totalSpentPoints }} <span class="metric-unit">pts</span>
+            -{{ metrics.totalSpentPoints }} <span class="metric-unit">积分</span>
           </div>
         </div>
         <div class="metric-icon-box danger">
@@ -232,7 +232,7 @@ onMounted(() => {
         <div class="metric-info">
           <span class="metric-title">退单返还积分 (REFUND)</span>
           <div class="metric-number primary">
-            +{{ metrics.totalRefundedPoints }} <span class="metric-unit">pts</span>
+            +{{ metrics.totalRefundedPoints }} <span class="metric-unit">积分</span>
           </div>
         </div>
         <div class="metric-icon-box primary">
@@ -284,11 +284,11 @@ onMounted(() => {
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出积分流水</el-button>
+          <el-button type="primary" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出积分流水</el-button>
         </el-form-item>
 
         <div class="filter-right">
-          <el-button type="warning" :icon="EditPen" @click="openAdjustModal">
+          <el-button type="warning" plain :icon="EditPen" @click="openAdjustModal">
             人工积分调账
           </el-button>
         </div>
@@ -299,19 +299,20 @@ onMounted(() => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 436px)"
         :data="recordList"
         stripe
         style="width: 100%"
         row-key="id"
       >
-        <el-table-column label="流水单号 / 时间" width="180">
+        <el-table-column label="流水单号 / 时间" width="160">
           <template #default="{ row }">
             <div class="record-no-text">{{ row.recordNo }}</div>
             <div class="sub-text">{{ row.createTime }}</div>
           </template>
         </el-table-column>
 
-        <el-table-column label="关联学生" min-width="150">
+        <el-table-column label="关联学生" min-width="132">
           <template #default="{ row }">
             <div class="student-name">{{ row.studentName }}</div>
             <div class="sub-text">
@@ -321,7 +322,7 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="业务行为" width="130" align="center">
+        <el-table-column label="业务行为" width="116" align="center">
           <template #default="{ row }">
             <el-tag
               :type="row.type === 1 ? 'success' : row.type === 2 ? 'warning' : row.type === 4 ? 'primary' : 'info'"
@@ -333,16 +334,16 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="变动分值" width="130" align="right">
+        <el-table-column label="变动分值" width="116" align="right">
           <template #default="{ row }">
             <span :class="['change-val', row.changePoints > 0 ? 'plus' : 'minus']">
               {{ row.changePoints > 0 ? '+' : '' }}{{ row.changePoints }}
             </span>
-            <span class="pts-unit"> pts</span>
+            <span class="pts-unit"> 积分</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="可用余额轨迹 (前后)" width="160" align="center">
+        <el-table-column label="余额变动" width="140" align="center">
           <template #default="{ row }">
             <div class="balance-track">
               <span>{{ row.beforePoints }}</span>
@@ -352,13 +353,13 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="关联单据" width="140">
+        <el-table-column label="关联单据" width="125">
           <template #default="{ row }">
             <span class="biz-tag">{{ row.businessType }}: {{ row.businessId }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="description" label="变动备注说明" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="description" label="变动备注说明" min-width="175" show-overflow-tooltip />
 
         <el-table-column prop="operatorName" label="操作人" width="140">
           <template #default="{ row }">
@@ -407,7 +408,7 @@ onMounted(() => {
             <el-option
               v-for="s in studentOptions"
               :key="s.id"
-              :label="`${s.name} (${s.studentNo}) · 当前可用 ${s.currentPoints ?? 0} pts`"
+              :label="`${s.name} (${s.studentNo}) · 当前可用 ${s.currentPoints ?? 0} 积分`"
               :value="s.id"
             />
           </el-select>
@@ -498,7 +499,7 @@ onMounted(() => {
 
 .metric-card {
   background: #ffffff;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--el-border-color-lighter);
   padding: 16px 20px;
   display: flex;
@@ -631,7 +632,7 @@ onMounted(() => {
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: 4px;
   color: var(--el-text-color-regular);
 }
 

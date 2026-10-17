@@ -141,16 +141,19 @@ export const routes: RouteRecordRaw[] = [
         name: 'AiSimulator',
         component: () => import('@/views/ai-simulator/index.vue'),
         meta: { 
-          title: '🤖 AI 对话与工具调度', 
+          title: 'AI 对话与工具调度', 
           icon: markRaw(ChatDotRound),
           roles: ['SUPER_ADMIN', 'ADMIN']
         }
+      },
+      {
+        // 通配兜底：匹配所有未定义路径，展示 404 页（保留侧边栏，便于直接跳转其他模块）
+        path: ':pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('@/views/404/index.vue'),
+        meta: { title: '页面不存在', hidden: true }
       }
     ]
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/dashboard'
   }
 ]
 

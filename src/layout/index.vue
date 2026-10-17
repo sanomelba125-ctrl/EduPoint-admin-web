@@ -229,7 +229,7 @@ const handleLogout = async () => {
     <!-- 侧边栏 -->
     <el-aside :width="userStore.isCollapse ? '64px' : '230px'" class="aside">
       <div class="logo-box">
-        <el-icon :size="24" color="#409EFF"><Calendar /></el-icon>
+        <el-icon :size="24" color="var(--app-color-primary)"><Calendar /></el-icon>
         <span v-if="!userStore.isCollapse" class="logo-title">活动打卡管理系统</span>
       </div>
 
@@ -288,7 +288,13 @@ const handleLogout = async () => {
           <!-- 管理员下拉菜单 -->
           <el-dropdown>
             <span class="user-dropdown">
-              <el-avatar :size="32" :src="userStore.userInfo?.avatar || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'" />
+              <el-avatar
+                :size="32"
+                :src="userStore.userInfo?.avatar || undefined"
+                class="avatar-letter"
+              >
+                {{ (userStore.userInfo?.nickname || userStore.userInfo?.username || '管').charAt(0) }}
+              </el-avatar>
               <span class="username">{{ userStore.userInfo?.nickname || userStore.userInfo?.username || '管理员' }}</span>
             </span>
             <template #dropdown>
@@ -449,7 +455,7 @@ const handleLogout = async () => {
 .header {
   height: 56px;
   background-color: #fff;
-  border-bottom: 1px solid #e6e6e6;
+  border-bottom: 1px solid var(--app-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -465,13 +471,13 @@ const handleLogout = async () => {
 .collapse-btn {
   font-size: 20px;
   cursor: pointer;
-  color: #606266;
+  color: var(--app-text-2);
 }
 
 .page-title {
   font-size: 15px;
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-1);
 }
 
 .header-right {
@@ -492,13 +498,13 @@ const handleLogout = async () => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background-color: #909399;
+  background-color: var(--app-text-3);
   display: inline-block;
 }
 
 .ws-dot.is-active {
-  background-color: #67c23a;
-  box-shadow: 0 0 8px #67c23a;
+  background-color: var(--app-color-success);
+  box-shadow: 0 0 8px var(--app-color-success);
   animation: ws-pulse 2s infinite;
 }
 
@@ -524,15 +530,15 @@ const handleLogout = async () => {
 
 .notice-bell-btn {
   font-size: 16px;
-  color: #606266;
-  background-color: #f4f4f5;
+  color: var(--app-text-2);
+  background-color: var(--app-fill);
   border: none;
   transition: all 0.2s ease;
 }
 
 .notice-bell-btn:hover {
-  color: #409eff;
-  background-color: #ecf5ff;
+  color: var(--app-color-primary);
+  background-color: var(--el-color-primary-light-9);
 }
 
 .user-dropdown {
@@ -544,11 +550,11 @@ const handleLogout = async () => {
 
 .username {
   font-size: 14px;
-  color: #606266;
+  color: var(--app-text-2);
 }
 
 .main {
-  background-color: #f0f2f5;
+  background-color: var(--app-border-lighter);
   padding: 16px;
   overflow-y: auto;
 }
@@ -569,7 +575,7 @@ const handleLogout = async () => {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 14px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--app-border-lighter);
   margin-bottom: 12px;
 }
 
@@ -592,7 +598,7 @@ const handleLogout = async () => {
 .notice-item {
   position: relative;
   background-color: #ffffff;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--app-border-lighter);
   border-radius: 8px;
   padding: 12px 14px;
   margin-bottom: 12px;
@@ -601,13 +607,13 @@ const handleLogout = async () => {
 }
 
 .notice-item:hover {
-  border-color: #c6e2ff;
+  border-color: var(--el-color-primary-light-7);
   box-shadow: 0 2px 10px rgba(64, 158, 255, 0.1);
 }
 
 .notice-item.is-unread {
-  background-color: #f0f7ff;
-  border-color: #b3d8ff;
+  background-color: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-5);
 }
 
 .notice-item-top {
@@ -628,14 +634,14 @@ const handleLogout = async () => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #f56c6c;
+  background-color: var(--app-color-danger);
   flex-shrink: 0;
 }
 
 .notice-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--app-text-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -652,7 +658,7 @@ const handleLogout = async () => {
 .notice-content {
   font-size: 13px;
   line-height: 1.5;
-  color: #606266;
+  color: var(--app-text-2);
   margin-bottom: 10px;
   word-break: break-all;
 }
@@ -665,15 +671,15 @@ const handleLogout = async () => {
 }
 
 .notice-time {
-  color: #909399;
+  color: var(--app-text-3);
 }
 
 .read-status.text-muted {
-  color: #c0c4cc;
+  color: var(--app-text-4);
 }
 
 .read-status.text-primary {
-  color: #409eff;
+  color: var(--app-color-primary);
   font-weight: 500;
 }
 
@@ -684,11 +690,11 @@ const handleLogout = async () => {
 
 .load-more-btn {
   font-size: 13px;
-  color: #409eff;
+  color: var(--app-color-primary);
 }
 
 .all-loaded-tip {
   font-size: 12px;
-  color: #909399;
+  color: var(--app-text-3);
 }
 </style>

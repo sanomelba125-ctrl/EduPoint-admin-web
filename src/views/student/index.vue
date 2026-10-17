@@ -311,31 +311,32 @@ onMounted(() => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 320px)"
         :data="studentList"
         stripe
         border
         style="width: 100%"
         row-key="id"
       >
-        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column prop="id" label="ID" width="60" align="center" />
 
-        <el-table-column label="头像" width="75" align="center">
+        <el-table-column label="头像" width="62" align="center">
           <template #default="{ row }">
-            <el-avatar :size="36" :src="row.avatar">
+            <el-avatar :size="36" :src="row.avatar || undefined" class="avatar-letter">
               {{ row.name ? row.name.charAt(0) : '生' }}
             </el-avatar>
           </template>
         </el-table-column>
 
-        <el-table-column prop="studentNo" label="学号" width="130">
+        <el-table-column prop="studentNo" label="学号" width="110">
           <template #default="{ row }">
-            <span style="font-weight: 600; color: #303133;">{{ row.studentNo }}</span>
+            <span style="font-weight: 600; color: var(--app-text-1);">{{ row.studentNo }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="name" label="姓名" width="110" />
+        <el-table-column prop="name" label="姓名" width="95" />
 
-        <el-table-column prop="gender" label="性别" width="75" align="center">
+        <el-table-column prop="gender" label="性别" width="62" align="center">
           <template #default="{ row }">
             <el-tag :type="row.gender === 1 ? 'primary' : 'danger'" size="small">
               {{ row.gender === 1 ? '男' : (row.gender === 0 ? '女' : '未知') }}
@@ -343,33 +344,33 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="className" label="班级" width="130" align="center">
+        <el-table-column prop="className" label="班级" width="105" align="center">
           <template #default="{ row }">
             <el-tag effect="plain">{{ row.className }}</el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column label="学院 / 专业" min-width="160">
+        <el-table-column label="学院 / 专业" min-width="132" show-overflow-tooltip>
           <template #default="{ row }">
             <span>{{ row.college || '-' }}</span>
-            <span v-if="row.major" style="color: #909399; margin-left: 4px;">/ {{ row.major }}</span>
+            <span v-if="row.major" style="color: var(--app-text-3); margin-left: 4px;">/ {{ row.major }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="phone" label="联系电话" width="130" align="center">
+        <el-table-column prop="phone" label="联系电话" width="110" align="center">
           <template #default="{ row }">
             {{ row.phone || '-' }}
           </template>
         </el-table-column>
 
-        <el-table-column label="可用 / 累计积分" width="150" align="center">
+        <el-table-column label="可用 / 累计积分" width="130" align="center">
           <template #default="{ row }">
             <el-tag type="warning" size="small">{{ row.currentPoints ?? 0 }} 分</el-tag>
-            <span style="color: #909399; font-size: 12px; margin-left: 4px;">(总 {{ row.totalPoints ?? 0 }})</span>
+            <span style="color: var(--app-text-3); font-size: 12px; margin-left: 4px;">(累计 {{ row.totalPoints ?? 0 }})</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" label="账号状态" width="105" align="center">
+        <el-table-column prop="status" label="账号状态" width="90" align="center">
           <template #default="{ row }">
             <el-switch
               :model-value="row.status === 1"
@@ -382,9 +383,9 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="createTime" label="录入时间" min-width="165" align="center" />
+        <el-table-column prop="createTime" label="录入时间" min-width="125" align="center" />
 
-        <el-table-column label="操作" width="230" fixed="right" align="center">
+        <el-table-column label="操作" width="175" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" :icon="Edit" size="small" @click="handleOpenEdit(row)">
               修改资料

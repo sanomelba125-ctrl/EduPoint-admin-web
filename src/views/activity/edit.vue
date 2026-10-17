@@ -712,7 +712,7 @@ function goBack() {
                   @keyup.enter="handleSearchPOI"
                 >
                   <template #prefix>
-                    <el-icon color="#94a3b8"><Search /></el-icon>
+                    <el-icon color="var(--app-text-3)"><Search /></el-icon>
                   </template>
                 </el-input>
                 <el-button
@@ -761,13 +761,13 @@ function goBack() {
 
               <!-- 加载中态 -->
               <div v-if="mapLoading" class="map-loading-mask">
-                <el-icon class="is-loading" :size="28" color="#409EFF"><Position /></el-icon>
+                <el-icon class="is-loading" :size="28" color="var(--app-color-primary)"><Position /></el-icon>
                 <span class="loading-text">高德地图 2.0 空间引擎加载中...</span>
               </div>
 
               <!-- 加载失败容错态 -->
               <div v-else-if="mapError" class="map-error-mask">
-                <el-icon :size="32" color="#f56c6c"><Warning /></el-icon>
+                <el-icon :size="32" color="var(--app-color-danger)"><Warning /></el-icon>
                 <span class="error-msg">{{ mapError }}</span>
                 <el-button type="primary" size="small" @click="initAMap">重新载入地图</el-button>
               </div>
@@ -775,7 +775,7 @@ function goBack() {
               <!-- 悬浮状态指示栏 -->
               <div v-if="mapLoaded" class="map-status-overlay">
                 <div class="overlay-left">
-                  <el-icon color="#67c23a"><CircleCheck /></el-icon>
+                  <el-icon color="var(--app-color-success)"><CircleCheck /></el-icon>
                   <span class="coord-tag">
                     <strong>打卡坐标：</strong>{{ form.longitude !== undefined && form.longitude !== null ? `${form.longitude}, ${form.latitude}` : '未选择 (请点击地图选址)' }}
                   </span>
@@ -784,7 +784,7 @@ function goBack() {
                   </span>
                 </div>
                 <div class="overlay-right">
-                  <span>💡 提示：在地图上任意点击或拖动红色图钉，即可精准导入打卡点并自动解析地址</span>
+                  <span>提示：在地图上任意点击或拖动红色图钉，即可精准导入打卡点并自动解析地址</span>
                 </div>
               </div>
             </div>
@@ -845,7 +845,7 @@ function goBack() {
 <style scoped>
 .edit-page {
   padding: 16px 20px 24px;
-  background-color: var(--el-bg-color-page, #f5f7fa);
+  background-color: var(--el-bg-color-page, var(--app-fill));
   min-height: calc(100vh - 84px);
 }
 
@@ -877,13 +877,13 @@ function goBack() {
 
 .form-section {
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .section-title {
   font-size: 15px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .section-header {
@@ -916,17 +916,17 @@ function goBack() {
 .map-title-label {
   font-size: 14px;
   font-weight: 600;
-  color: #334155;
+  color: var(--app-text-2);
 }
 
 .map-title-sub {
   font-size: 12px;
-  color: #64748b;
+  color: var(--app-text-2);
 }
 
 .amap-wrapper {
   width: 100%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
@@ -937,8 +937,8 @@ function goBack() {
 .map-ctrl-toolbar {
   width: 100%;
   padding: 10px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--app-fill);
+  border-bottom: 1px solid var(--app-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -969,7 +969,7 @@ function goBack() {
 .toolbar-divider {
   width: 1px;
   height: 22px;
-  background-color: #cbd5e1;
+  background-color: var(--app-border);
   margin: 0 4px;
 }
 
@@ -1116,7 +1116,7 @@ function goBack() {
   position: relative;
   width: 100%;
   height: 420px;
-  background-color: #f1f5f9;
+  background-color: var(--app-border-lighter);
   box-sizing: border-box;
 }
 
@@ -1141,7 +1141,7 @@ function goBack() {
 
 .loading-text {
   font-size: 13px;
-  color: #475569;
+  color: var(--app-text-2);
   font-weight: 500;
 }
 
@@ -1161,7 +1161,7 @@ function goBack() {
 }
 
 .error-msg {
-  color: #e11d48;
+  color: var(--app-color-danger);
   font-size: 13px;
   max-width: 360px;
 }
@@ -1174,8 +1174,8 @@ function goBack() {
   right: 12px;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
   padding: 8px 14px;
   font-size: 12px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
@@ -1194,23 +1194,23 @@ function goBack() {
   flex-wrap: wrap;
   min-width: 0;
   gap: 6px;
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .coord-tag {
   font-family: 'Consolas', monospace;
   font-size: 12px;
-  color: #0f172a;
+  color: var(--app-text-1);
   overflow-wrap: anywhere;
 }
 
 .radius-tag {
-  color: #3b82f6;
+  color: var(--app-color-primary);
   font-weight: 600;
 }
 
 .overlay-right {
-  color: #64748b;
+  color: var(--app-text-2);
   font-size: 11px;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -1223,7 +1223,7 @@ function goBack() {
   z-index: 30;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 12px 24px;
   display: flex;

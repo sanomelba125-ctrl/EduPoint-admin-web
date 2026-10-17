@@ -20,6 +20,7 @@ import {
   type TitleComponentOption
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { CHART_COLORS, CHART_PALETTE, CHART_TEXT } from '@/utils/chartTheme'
 
 // 按需注册 ECharts 核心模块与组件
 echarts.use([
@@ -55,10 +56,10 @@ const loading = ref(false)
 const lastUpdatedTime = ref('')
 
 const statCards = ref([
-  { title: '注册学生总数', value: '0', unit: '人', icon: markRaw(User), color: '#409EFF', subText: '全校认证学籍' },
-  { title: '累计打卡人次', value: '0', unit: '人次', icon: markRaw(Checked), color: '#67C23A', subText: '活动完成履约' },
-  { title: '平均签到履约率', value: '0.0%', unit: '', icon: markRaw(PieChart), color: '#E6A23C', subText: '报名即履约比例' },
-  { title: '积分流通总量', value: '0', unit: '分', icon: markRaw(Coin), color: '#F56C6C', subText: '当前学生可用余额' }
+  { title: '注册学生总数', value: '0', unit: '人', icon: markRaw(User), color: CHART_COLORS.primary, subText: '全校认证学籍' },
+  { title: '累计打卡人次', value: '0', unit: '人次', icon: markRaw(Checked), color: CHART_COLORS.success, subText: '活动完成履约' },
+  { title: '平均签到履约率', value: '0.0%', unit: '', icon: markRaw(PieChart), color: CHART_COLORS.warning, subText: '报名即履约比例' },
+  { title: '积分流通总量', value: '0', unit: '分', icon: markRaw(Coin), color: CHART_COLORS.purple, subText: '当前学生可用余额' }
 ])
 
 const recentCheckins = ref<RecentCheckinVO[]>([])
@@ -94,10 +95,10 @@ function initTrendChart(trendData: DailyTrendVO[]) {
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#ebeef5',
+      borderColor: CHART_TEXT.border,
       borderWidth: 1,
-      textStyle: { color: '#303133', fontSize: 13 },
-      formatter: '{b}<br/><span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:#409EFF;"></span>打卡人次: <b>{c}</b> 人'
+      textStyle: { color: CHART_TEXT.title, fontSize: 13 },
+      formatter: `{b}<br/><span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${CHART_COLORS.primary};"></span>打卡人次: <b>{c}</b> 人`
     },
     grid: {
       left: '3%',
@@ -110,14 +111,14 @@ function initTrendChart(trendData: DailyTrendVO[]) {
       type: 'category',
       boundaryGap: false,
       data: dates,
-      axisLine: { lineStyle: { color: '#dcdfe6' } },
-      axisLabel: { color: '#606266', fontSize: 12 }
+      axisLine: { lineStyle: { color: CHART_TEXT.axisLine } },
+      axisLabel: { color: CHART_TEXT.regular, fontSize: 12 }
     },
     yAxis: {
       type: 'value',
       minInterval: 1,
-      splitLine: { lineStyle: { color: '#f2f6fc', type: 'dashed' } },
-      axisLabel: { color: '#909399', fontSize: 12 }
+      splitLine: { lineStyle: { color: CHART_TEXT.splitLine, type: 'dashed' } },
+      axisLabel: { color: CHART_TEXT.secondary, fontSize: 12 }
     },
     series: [
       {
@@ -127,13 +128,13 @@ function initTrendChart(trendData: DailyTrendVO[]) {
         symbol: 'circle',
         symbolSize: 7,
         itemStyle: {
-          color: '#409EFF',
+          color: CHART_COLORS.primary,
           borderWidth: 2,
-          borderColor: '#ffffff'
+          borderColor: CHART_TEXT.white
         },
         lineStyle: {
           width: 3,
-          color: '#409EFF'
+          color: CHART_COLORS.primary
         },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -164,9 +165,9 @@ function initCategoryChart(categoryData: CategoryStatVO[]) {
     tooltip: {
       trigger: 'item',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#ebeef5',
+      borderColor: CHART_TEXT.border,
       borderWidth: 1,
-      textStyle: { color: '#303133', fontSize: 13 },
+      textStyle: { color: CHART_TEXT.title, fontSize: 13 },
       formatter: '{b}: <b>{c}</b> 项 ({d}%)'
     },
     legend: {
@@ -175,9 +176,9 @@ function initCategoryChart(categoryData: CategoryStatVO[]) {
       top: 'middle',
       itemWidth: 10,
       itemHeight: 10,
-      textStyle: { color: '#606266', fontSize: 12 }
+      textStyle: { color: CHART_TEXT.regular, fontSize: 12 }
     },
-    color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#9b59b6', '#34495e'],
+    color: CHART_PALETTE,
     series: [
       {
         name: '活动分类',
@@ -187,7 +188,7 @@ function initCategoryChart(categoryData: CategoryStatVO[]) {
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 8,
-          borderColor: '#fff',
+          borderColor: CHART_TEXT.white,
           borderWidth: 2
         },
         label: {
@@ -353,10 +354,10 @@ onUnmounted(() => {
           </template>
           <el-table :data="recentCheckins" stripe style="width: 100%" empty-text="暂无打卡记录">
             <el-table-column prop="studentNo" label="学号" width="115" />
-            <el-table-column label="姓名" width="105">
+            <el-table-column label="姓名" width="100">
               <template #default="{ row }">
                 <div class="student-cell">
-                  <el-avatar :size="24" :src="row.avatar" class="mr-1">
+                  <el-avatar :size="24" :src="row.avatar || undefined" class="mr-1 avatar-letter">
                     {{ (row.name || '学').slice(0, 1) }}
                   </el-avatar>
                   <span class="student-name">{{ row.name }}</span>
@@ -364,13 +365,13 @@ onUnmounted(() => {
               </template>
             </el-table-column>
             <el-table-column prop="className" label="班级" width="125" show-overflow-tooltip />
-            <el-table-column prop="activity" label="参与活动" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="points" label="奖励积分" width="90" align="center">
+            <el-table-column prop="activity" label="参与活动" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="points" label="奖励积分" width="86" align="center">
               <template #default="{ row }">
                 <el-tag size="small" type="warning" effect="dark">+{{ row.points || 0 }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="time" label="打卡时间" width="95" align="center" />
+            <el-table-column prop="time" label="打卡时间" width="90" align="center" />
           </el-table>
         </el-card>
       </el-col>
@@ -395,10 +396,10 @@ onUnmounted(() => {
                 <span v-else class="rank-badge rank-normal">{{ row.rank }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="学生信息" min-width="130">
+            <el-table-column label="学生信息" min-width="116">
               <template #default="{ row }">
                 <div class="top-student-cell">
-                  <el-avatar :size="24" :src="row.avatar" class="mr-1">
+                  <el-avatar :size="24" :src="row.avatar || undefined" class="mr-1 avatar-letter">
                     {{ (row.name || '学').slice(0, 1) }}
                   </el-avatar>
                   <div class="top-student-info">
@@ -408,7 +409,7 @@ onUnmounted(() => {
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="points" label="累计总积分" width="95" align="right">
+            <el-table-column prop="points" label="累计总积分" width="110" align="right">
               <template #default="{ row }">
                 <span class="rank-points">{{ row.points }}</span>
               </template>
@@ -439,13 +440,13 @@ onUnmounted(() => {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text-1);
   letter-spacing: -0.5px;
 }
 
 .page-sub {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--app-text-2);
   margin-top: 4px;
   display: inline-block;
 }
@@ -458,7 +459,7 @@ onUnmounted(() => {
 
 .update-hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--app-text-3);
 }
 
 /* 统计卡片区 */
@@ -468,7 +469,7 @@ onUnmounted(() => {
 
 .stat-card {
   border-radius: 12px;
-  border: 1px solid #f0f2f5;
+  border: 1px solid var(--app-border-lighter);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -485,7 +486,7 @@ onUnmounted(() => {
 
 .stat-title {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--app-text-2);
   margin-bottom: 6px;
   font-weight: 500;
 }
@@ -493,27 +494,27 @@ onUnmounted(() => {
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  color: var(--app-text-1);
   line-height: 1.2;
 }
 
 .stat-unit {
   font-size: 13px;
   font-weight: normal;
-  color: #9ca3af;
+  color: var(--app-text-3);
   margin-left: 2px;
 }
 
 .stat-subtext {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--app-text-3);
   margin-top: 6px;
 }
 
 .stat-icon {
   width: 54px;
   height: 54px;
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -527,7 +528,7 @@ onUnmounted(() => {
 
 .chart-card {
   border-radius: 12px;
-  border: 1px solid #f0f2f5;
+  border: 1px solid var(--app-border-lighter);
 }
 
 .echarts-container {
@@ -547,7 +548,7 @@ onUnmounted(() => {
   align-items: center;
   font-weight: 600;
   font-size: 14px;
-  color: #374151;
+  color: var(--app-text-2);
 }
 
 .mr-1 {
@@ -555,21 +556,21 @@ onUnmounted(() => {
 }
 
 .text-primary {
-  color: #409eff;
+  color: var(--app-color-primary);
 }
 
 .text-warning {
-  color: #e6a23c;
+  color: var(--app-color-warning);
 }
 
 .text-success {
-  color: #67c23a;
+  color: var(--app-color-success);
 }
 
 /* 表格区 */
 .table-card {
   border-radius: 12px;
-  border: 1px solid #f0f2f5;
+  border: 1px solid var(--app-border-lighter);
 }
 
 .student-cell,
@@ -580,7 +581,7 @@ onUnmounted(() => {
 
 .student-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-1);
 }
 
 /* 积分排行榜徽章 */
@@ -596,23 +597,26 @@ onUnmounted(() => {
   color: #ffffff;
 }
 
+/* 名次配色使用「金 / 银 / 铜」而非语义色 ——
+   红色在 UI 语义里是 danger（危险/错误），用它表示第一名属于语义误用；
+   橙/绿同理（warning/success 会让人误读为状态而非名次）。 */
 .rank-1 {
-  background: linear-gradient(135deg, #f56c6c, #e74c3c);
-  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.4);
+  background: linear-gradient(135deg, var(--app-gold-light), var(--app-gold));
+  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.35);
 }
 
 .rank-2 {
-  background: linear-gradient(135deg, #e6a23c, #f39c12);
-  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.4);
+  background: linear-gradient(135deg, var(--app-silver-light), var(--app-silver));
+  box-shadow: 0 2px 6px rgba(144, 147, 153, 0.35);
 }
 
 .rank-3 {
-  background: linear-gradient(135deg, #67c23a, #2ecc71);
-  box-shadow: 0 2px 6px rgba(103, 194, 58, 0.4);
+  background: linear-gradient(135deg, var(--app-bronze-light), var(--app-bronze));
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.35);
 }
 
 .rank-normal {
-  background-color: #909399;
+  background-color: var(--app-text-3);
 }
 
 .top-student-info {
@@ -622,19 +626,19 @@ onUnmounted(() => {
 
 .top-name {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--app-text-1);
   font-size: 13px;
 }
 
 .top-class {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--app-text-3);
   margin-top: 1px;
 }
 
 .rank-points {
   font-weight: 700;
   font-size: 15px;
-  color: #e6a23c;
+  color: var(--app-color-warning);
 }
 </style>

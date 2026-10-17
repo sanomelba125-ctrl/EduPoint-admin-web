@@ -267,18 +267,19 @@ const handleDelete = async (row: GiftVO) => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 320px)"
         :data="giftList"
         stripe
         style="width: 100%"
         row-key="id"
       >
-        <el-table-column label="商品编号" width="110">
+        <el-table-column label="商品编号" width="100">
           <template #default="{ row }">
             <span class="code-text">#G{{ String(row.id).padStart(4, '0') }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="礼品商品" min-width="220">
+        <el-table-column label="礼品商品" min-width="185">
           <template #default="{ row }">
             <div class="gift-col">
               <div class="thumb-box">
@@ -296,19 +297,19 @@ const handleDelete = async (row: GiftVO) => {
               </div>
               <div class="gift-info">
                 <div class="gift-title">{{ row.name }}</div>
-                <div v-if="row.description" class="gift-desc">{{ row.description }}</div>
+                <div v-if="row.description" class="gift-desc" :title="row.description">{{ row.description }}</div>
               </div>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="pointsCost" label="所需积分" width="130" align="right">
+        <el-table-column prop="pointsCost" label="所需积分" width="116" align="right">
           <template #default="{ row }">
-            <span class="points-text">{{ row.pointsCost || row.pointsRequired || 0 }} <small>pts</small></span>
+            <span class="points-text">{{ row.pointsCost || row.pointsRequired || 0 }} <small>积分</small></span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="stock" label="可用库存" width="130" align="center">
+        <el-table-column prop="stock" label="可用库存" width="116" align="center">
           <template #default="{ row }">
             <div class="stock-cell">
               <span :class="['stock-num', (row.stock !== undefined ? row.stock : (row.totalStock || 0)) <= 0 ? 'out' : '']">
@@ -321,13 +322,7 @@ const handleDelete = async (row: GiftVO) => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="version" label="乐观锁版本" width="120" align="center">
-          <template #default="{ row }">
-            <span class="version-tag">v{{ row.version || 0 }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="status" label="货架状态" width="120" align="center">
+        <el-table-column prop="status" label="货架状态" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'" effect="light" size="small">
               {{ row.status === 1 ? '上架在售' : '下架停售' }}
@@ -335,7 +330,7 @@ const handleDelete = async (row: GiftVO) => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="updateTime" label="更新时间" width="170">
+        <el-table-column prop="updateTime" label="更新时间" width="148">
           <template #default="{ row }">
             <span class="time-text">{{ row.updateTime || row.createTime || '-' }}</span>
           </template>
@@ -409,8 +404,8 @@ const handleDelete = async (row: GiftVO) => {
             style="width: 100%;"
             controls-position="right"
           />
-          <div v-if="isEdit" style="font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4;">
-            💡 可用库存由前台兑换实时扣减、退单自动回退。需要追加库存请用列表里的「补货」按钮，编辑基础信息不会变更库存。
+          <div v-if="isEdit" style="font-size: 12px; color: var(--app-text-3); margin-top: 4px; line-height: 1.4;">
+            可用库存由前台兑换实时扣减、退单自动回退。需要追加库存请用列表里的「补货」按钮，编辑基础信息不会变更库存。
           </div>
         </el-form-item>
 
@@ -454,7 +449,7 @@ const handleDelete = async (row: GiftVO) => {
     >
       <div v-if="currentStockRow" class="stock-adjust-body">
         <div class="gift-info-banner">
-          <div class="banner-title">🎁 {{ currentStockRow.name }}</div>
+          <div class="banner-title">{{ currentStockRow.name }}</div>
           <div class="banner-meta">
             <span>当前可用库存：<strong>{{ currentStockRow.stock ?? currentStockRow.totalStock ?? 0 }}</strong> 件</span>
             <span style="margin-left: 16px;">累计入库总量：<strong>{{ currentStockRow.totalStock ?? 0 }}</strong> 件</span>
@@ -464,8 +459,8 @@ const handleDelete = async (row: GiftVO) => {
         <el-form label-position="top" style="margin-top: 18px;">
           <el-form-item label="调整方式">
             <el-radio-group v-model="stockForm.type" size="default">
-              <el-radio-button value="INCREASE">🟢 入库 (+)</el-radio-button>
-              <el-radio-button value="DECREASE">🔴 报损 (-)</el-radio-button>
+              <el-radio-button value="INCREASE">入库 (+)</el-radio-button>
+              <el-radio-button value="DECREASE">报损 (-)</el-radio-button>
             </el-radio-group>
           </el-form-item>
 
@@ -536,8 +531,8 @@ const handleDelete = async (row: GiftVO) => {
 }
 
 .preview-stock-box {
-  background: #f8fafc;
-  border-radius: 6px;
+  background: var(--app-fill);
+  border-radius: 8px;
   padding: 10px 14px;
   display: flex;
   justify-content: space-between;
@@ -553,11 +548,11 @@ const handleDelete = async (row: GiftVO) => {
 .preview-val {
   font-size: 15px;
   font-weight: 700;
-  color: #10b981;
+  color: var(--app-color-success);
 }
 
 .preview-val.text-danger {
-  color: #ef4444;
+  color: var(--app-color-danger);
 }
 .gift-page {
   display: flex;
@@ -566,7 +561,7 @@ const handleDelete = async (row: GiftVO) => {
 }
 
 .filter-card {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .filter-form {
@@ -580,7 +575,7 @@ const handleDelete = async (row: GiftVO) => {
 }
 
 .table-card {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .code-text {
@@ -598,7 +593,7 @@ const handleDelete = async (row: GiftVO) => {
 .thumb-box {
   width: 44px;
   height: 44px;
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
   display: flex;
@@ -612,7 +607,7 @@ const handleDelete = async (row: GiftVO) => {
 .gift-img {
   width: 44px;
   height: 44px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .gift-info {
@@ -631,6 +626,11 @@ const handleDelete = async (row: GiftVO) => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   line-height: 1.3;
+  /* 最多两行，超出省略（完整描述 hover 时由 title 展示），避免长描述把行高撑到 100px+ */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .points-text {
@@ -668,16 +668,6 @@ const handleDelete = async (row: GiftVO) => {
   margin-top: 2px;
   font-size: 11px;
   color: var(--el-text-color-secondary);
-}
-
-.version-tag {
-  font-family: monospace;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--el-border-color-lighter);
 }
 
 .time-text {

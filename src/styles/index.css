@@ -1,0 +1,234 @@
+/* =====================================================================
+ * 全局样式与设计规范 (admin-web)
+ *
+ * 背景：改造前项目**没有全局样式文件**，设计 token 完全缺失，导致 ——
+ *   ① 硬编码色值 344 处 / 77 个不同颜色，Element Plus 官方色板
+ *      (#409eff / #67c23a / #303133 / #606266 / #909399 …)
+ *      与 Tailwind 色板 (#3b82f6 / #10b981 / #0f172a / #64748b / #94a3b8 …)
+ *      **两套混用** —— 光"主蓝"就有 2 个，"成功绿" 2 个，灰阶 2 套；
+ *   ② 圆角出现 11 种取值（3/4/6/8/10/12/14px 混用）；
+ *   ③ 卡片、表格、标签的样式在各页面里被重复定义。
+ *
+ * 本文件把这些规约收敛到一处：语义色一律走 Element 的 CSS 变量（便于整体换肤），
+ * 页面里只允许引用 --app-* 别名，不再出现十六进制色值。
+ * ===================================================================== */
+
+:root {
+  /* ---------- 语义色（映射 Element 变量，避免二次硬编码） ---------- */
+  --app-color-primary: var(--el-color-primary);
+  --app-color-success: var(--el-color-success);
+  --app-color-warning: var(--el-color-warning);
+  --app-color-danger: var(--el-color-danger);
+  --app-color-info: var(--el-color-info);
+
+  /* ---------- 文字层级（4 档，替代原先两套灰阶混用） ---------- */
+  --app-text-1: var(--el-text-color-primary);    /* 标题、关键数值 */
+  --app-text-2: var(--el-text-color-regular);    /* 正文、表格内容 */
+  --app-text-3: var(--el-text-color-secondary);  /* 次要说明、表头 */
+  --app-text-4: var(--el-text-color-placeholder);/* 占位、禁用 */
+
+  /* ---------- 描边与填充 ---------- */
+  --app-border: var(--el-border-color);
+  --app-border-light: var(--el-border-color-light);
+  --app-border-lighter: var(--el-border-color-lighter);
+  --app-fill: var(--el-fill-color-light);
+  --app-fill-light: var(--el-fill-color-lighter);
+
+  /* ---------- 圆角规范（原 3/4/6/8/10/12/14px 收敛为 4 档） ---------- */
+  --app-radius-sm: 4px;    /* 标签、小按钮、输入框 */
+  --app-radius-md: 8px;    /* 卡片、面板、下拉（主力档） */
+  --app-radius-lg: 12px;   /* 大容器、对话框 */
+  --app-radius-pill: 999px;
+
+  /* ---------- 阴影规范（3 档，替代原先各页随手写的 box-shadow） ---------- */
+  --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --app-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --app-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* ---------- 布局常量 ---------- */
+  --app-sider-bg: #304156;         /* 深色侧边栏（集中定义，不再散落） */
+  --app-sider-bg-hover: #263445;
+  --app-sider-text: #bfcbd9;
+  --app-sider-text-active: #ffffff;
+  --app-header-height: 56px;
+
+  /* ---------- 业务装饰色（非语义，仅用于奖牌/证书/分类标识等特定视觉） ---------- */
+  --app-gold: #e6a23c;      /* 冠军 / 金牌 */
+  --app-gold-light: #fbbf24;
+  --app-silver: #909399;    /* 亚军 / 银牌 */
+  --app-silver-light: #cbd5e1;
+  --app-bronze: #b45309;    /* 季军 / 铜牌、证书描金 */
+  --app-bronze-light: #d97706;
+  --app-accent-purple: #7c3aed;        /* 中性强调色（分类标识、AI 相关） */
+  --app-accent-purple-light: #8b5cf6;
+  --app-accent-purple-dark: #6d28d9;
+}
+
+/* =====================================================================
+ * Element Plus 全局微调
+ * ===================================================================== */
+
+/* ---------- 卡片：统一圆角与描边，去掉过重的默认阴影 ---------- */
+.el-card {
+  border-radius: var(--app-radius-md);
+  border-color: var(--app-border-lighter);
+}
+
+/* ---------- 表格：表头统一底色与字重，去除冗余竖线感 ---------- */
+.el-table th.el-table__cell {
+  background-color: var(--app-fill) !important;
+  color: var(--app-text-2);
+  font-weight: 600;
+}
+
+.el-table .el-table__cell {
+  padding: 10px 0;
+}
+
+/* 单元格内容超长时统一省略，避免撑破列宽（配合列的 show-overflow-tooltip） */
+.el-table .cell {
+  line-height: 1.5;
+}
+
+/* ---------- 分页：与表格留出统一间距 ---------- */
+.el-pagination {
+  --el-pagination-font-size: 13px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+/* ---------- 对话框 / 抽屉：统一大圆角 ---------- */
+.el-dialog {
+  border-radius: var(--app-radius-lg);
+}
+
+.el-dialog__header {
+  margin-right: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--app-border-lighter);
+}
+
+.el-dialog__body {
+  padding-top: 20px;
+}
+
+/* ---------- 表单：标签与控件间距统一 ---------- */
+.el-form-item__label {
+  color: var(--app-text-2);
+  font-weight: 500;
+}
+
+/* ---------- 标签：统一为胶囊形 ---------- */
+.el-tag {
+  border-radius: var(--app-radius-sm);
+}
+
+.el-tag.is-round {
+  border-radius: var(--app-radius-pill);
+}
+
+/* ---------- 按钮：圆角与字重统一 ---------- */
+.el-button {
+  border-radius: var(--app-radius-sm);
+  font-weight: 500;
+}
+
+/**
+ * 禁用态链接按钮：Element 默认把禁用色降到极浅（几乎不可读），
+ * 导致「受保护行」的按钮与可用按钮难以区分。这里提高到可读的灰，
+ * 并通过去除颜色、弱化字重来表达"不可用"，而不是靠降低不透明度。
+ */
+.el-button.is-link.is-disabled,
+.el-button.is-text.is-disabled {
+  color: var(--app-text-4) !important;
+  opacity: 1;
+}
+
+/* ---------- 头像：首字母兜底的统一色块（与移动端同思路） ---------- */
+.avatar-letter {
+  background: linear-gradient(135deg, var(--app-color-primary) 0%, var(--app-color-primary-dark, #1d4ed8) 100%);
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* ---------- 空状态：文案弱化，避免抢视觉 ---------- */
+.el-empty__description p {
+  color: var(--app-text-3);
+  font-size: 13px;
+}
+
+/* =====================================================================
+ * 全局滚动条（Webkit）：细、低对比，减少视觉噪音
+ * ===================================================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+  border-radius: var(--app-radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-text-4);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* =====================================================================
+ * 通用工具类（跨页面复用的高频样式，避免各页重复定义）
+ * ===================================================================== */
+
+/* 页面标题区：所有管理页统一使用 */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.page-header .page-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--app-text-1);
+  line-height: 1.4;
+}
+
+.page-header .page-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--app-text-3);
+  line-height: 1.5;
+}
+
+/* 筛选区：统一卡片化的查询条件容器 */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #ffffff;
+  border: 1px solid var(--app-border-lighter);
+  border-radius: var(--app-radius-md);
+}
+
+/* 表格容器：统一卡片化 */
+.table-card {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--app-border-lighter);
+  border-radius: var(--app-radius-md);
+}

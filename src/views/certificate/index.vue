@@ -139,25 +139,26 @@
 
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 320px)"
         :data="certificateList"
         stripe
         border
         style="width: 100%"
         class="custom-table"
       >
-        <el-table-column label="防伪唯一编号 (UUID)" min-width="190">
+        <el-table-column label="防伪唯一编号 (UUID)" min-width="160">
           <template #default="{ row }">
             <span class="cert-no-tag">{{ row.certificateNo }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="title" label="证书名称" min-width="180" show-overflow-tooltip>
+        <el-table-column prop="title" label="证书名称" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="font-bold">{{ row.title }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="获奖学生" min-width="140">
+        <el-table-column label="获奖学生" min-width="125">
           <template #default="{ row }">
             <div class="student-info-cell">
               <span class="name">{{ row.studentName }}</span>
@@ -166,19 +167,19 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="activityTitle" label="归属活动" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="activityTitle" label="归属活动" min-width="175" show-overflow-tooltip />
 
-        <el-table-column prop="issuer" label="签发单位" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="issuer" label="签发单位" min-width="132" show-overflow-tooltip />
 
-        <el-table-column prop="issueTime" label="颁发时间" width="160" />
+        <el-table-column prop="issueTime" label="颁发时间" width="140" />
 
-        <el-table-column label="防伪核验" width="90" align="center">
+        <el-table-column label="防伪核验" width="86" align="center">
           <template #default="{ row }">
             <el-badge :value="row.verifyCount || 0" type="primary" class="verify-badge" />
           </template>
         </el-table-column>
 
-        <el-table-column label="凭证状态" width="110" align="center">
+        <el-table-column label="凭证状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.status === 1" type="success" effect="dark" size="small">
               有效 VALID
@@ -339,10 +340,16 @@
         <div><strong>获奖学生：</strong>{{ certToRevoke.studentName }} ({{ certToRevoke.studentNo }})</div>
       </div>
 
-      <el-form label-position="top" style="margin-top: 16px;">
-        <el-form-item label="撤销作废原因 (必填)" required>
+      <el-form
+        ref="revokeFormRef"
+        :model="revokeForm"
+        :rules="revokeRules"
+        label-position="top"
+        style="margin-top: 16px;"
+      >
+        <el-form-item label="撤销作废原因 (必填)" prop="revokeReason">
           <el-input
-            v-model="revokeReasonInput"
+            v-model="revokeForm.revokeReason"
             type="textarea"
             :rows="3"
             maxlength="200"
@@ -428,6 +435,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import QrcodeVue from 'qrcode.vue'
 import {
   Search,
@@ -538,8 +546,19 @@ const currentCert = ref<CertificateItem | null>(null)
 // 撤销弹窗状态
 const revokeVisible = ref(false)
 const certToRevoke = ref<CertificateItem | null>(null)
-const revokeReasonInput = ref('')
 const revokeSubmitting = ref(false)
+const revokeFormRef = ref<FormInstance>()
+const revokeForm = reactive({ revokeReason: '' })
+/**
+ * 撤销原因校验：必填（拒绝纯空白）+ 至少 4 字。
+ * 该文案会同步公示在公开核验页，过短（如"测试"）无法向扫码者说明撤销依据。
+ */
+const revokeRules: FormRules = {
+  revokeReason: [
+    { required: true, whitespace: true, message: '请输入撤销作废原因', trigger: 'blur' },
+    { min: 4, max: 200, message: '原因长度需在 4~200 字之间，该内容将在公开核验页公示', trigger: 'blur' }
+  ]
+}
 
 // 快速核验弹窗状态
 const quickVerifyVisible = ref(false)
@@ -591,18 +610,22 @@ const handlePrintCert = () => {
 // 打开撤销模态框
 const handleOpenRevoke = (row: CertificateItem) => {
   certToRevoke.value = row
-  revokeReasonInput.value = '学生因违反竞赛作弊纪律，经学术委员会核定撤销证书'
+  revokeForm.revokeReason = '学生因违反竞赛作弊纪律，经学术委员会核定撤销证书'
+  // 清掉上一次可能残留的校验红框
+  revokeFormRef.value?.clearValidate()
   revokeVisible.value = true
 }
 
 // 提交撤销操作
 const submitRevoke = async () => {
   if (!certToRevoke.value) return
-  const reason = revokeReasonInput.value.trim()
-  if (!reason) {
-    ElMessage.warning('请输入撤销作废原因')
+  // 标准表单校验：失败时错误内联展示在输入框下方（替代原先仅弹一条 warning 的做法）
+  try {
+    await revokeFormRef.value?.validate()
+  } catch {
     return
   }
+  const reason = revokeForm.revokeReason.trim()
 
   revokeSubmitting.value = true
   try {
@@ -662,7 +685,7 @@ onMounted(() => {
 <style scoped>
 .certificate-container {
   padding: 16px;
-  background-color: #f5f7fa;
+  background-color: var(--app-fill);
   min-height: calc(100vh - 84px);
 }
 
@@ -672,7 +695,7 @@ onMounted(() => {
 
 .metric-card {
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .metric-inner {
@@ -683,64 +706,64 @@ onMounted(() => {
 
 .metric-label {
   font-size: 13px;
-  color: #64748b;
+  color: var(--app-text-2);
   margin-bottom: 4px;
 }
 
 .metric-value {
   font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .metric-unit {
   font-size: 12px;
   font-weight: normal;
-  color: #94a3b8;
+  color: var(--app-text-3);
   margin-left: 2px;
 }
 
 .text-primary {
-  color: #409eff !important;
+  color: var(--app-color-primary) !important;
 }
 .text-success {
-  color: #67c23a !important;
+  color: var(--app-color-success) !important;
 }
 .text-danger {
-  color: #f56c6c !important;
+  color: var(--app-color-danger) !important;
 }
 
 .metric-icon {
   width: 48px;
   height: 48px;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .metric-icon.primary {
-  background: #ecf5ff;
-  color: #409eff;
+  background: var(--el-color-primary-light-9);
+  color: var(--app-color-primary);
 }
 .metric-icon.success {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: var(--el-color-success-light-9);
+  color: var(--app-color-success);
 }
 .metric-icon.warning {
-  background: #fdf6ec;
-  color: #e6a23c;
+  background: var(--el-color-warning-light-9);
+  color: var(--app-color-warning);
 }
 .metric-icon.danger {
-  background: #fef0f0;
-  color: #f56c6c;
+  background: var(--el-color-danger-light-9);
+  color: var(--app-color-danger);
 }
 
 .search-card,
 .table-card {
   border-radius: 8px;
   margin-bottom: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
 }
 
 .table-header-bar {
@@ -753,7 +776,7 @@ onMounted(() => {
 .table-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--app-text-1);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -763,9 +786,9 @@ onMounted(() => {
   font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
   font-weight: 600;
   font-size: 12px;
-  color: #409eff;
-  background: #ecf5ff;
-  border: 1px solid #d9ecff;
+  color: var(--app-color-primary);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-8);
   padding: 3px 8px;
   border-radius: 4px;
 }
@@ -777,12 +800,12 @@ onMounted(() => {
 
 .student-info-cell .name {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .student-info-cell .no {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--app-text-3);
   font-family: monospace;
 }
 
@@ -806,7 +829,7 @@ onMounted(() => {
   position: relative;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .cert-watermark-txt {
@@ -847,7 +870,7 @@ onMounted(() => {
 
 .cert-body-text {
   font-size: 14px;
-  color: #334155;
+  color: var(--app-text-2);
   line-height: 2;
   text-align: justify;
   padding: 0 12px;
@@ -856,7 +879,7 @@ onMounted(() => {
 
 .cert-highlight-name {
   font-size: 16px;
-  color: #1e293b;
+  color: var(--app-text-1);
   border-bottom: 1.5px solid #b45309;
   padding: 0 4px;
 }
@@ -866,7 +889,7 @@ onMounted(() => {
 }
 
 .cert-highlight-act {
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .cert-footer-meta {
@@ -879,17 +902,17 @@ onMounted(() => {
 .cert-meta-left {
   text-align: left;
   font-size: 11px;
-  color: #64748b;
+  color: var(--app-text-2);
   font-family: monospace;
 }
 
 .cert-meta-left .mono-code {
-  color: #409eff;
+  color: var(--app-color-primary);
   font-weight: 600;
 }
 
 .cert-revoked-warning {
-  color: #dc2626;
+  color: var(--app-color-danger);
   font-weight: 600;
   margin-top: 4px;
 }
@@ -901,12 +924,12 @@ onMounted(() => {
 .cert-meta-right .issuer-name {
   font-weight: 600;
   font-size: 13px;
-  color: #1e293b;
+  color: var(--app-text-1);
 }
 
 .cert-meta-right .issue-date {
   font-size: 11px;
-  color: #64748b;
+  color: var(--app-text-2);
   margin-top: 2px;
 }
 
@@ -922,26 +945,26 @@ onMounted(() => {
 }
 
 .revoke-summary {
-  background: #fef0f0;
-  border: 1px solid #fde2e2;
+  background: var(--el-color-danger-light-9);
+  border: 1px solid var(--el-color-danger-light-9);
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   line-height: 1.8;
-  color: #606266;
+  color: var(--app-text-2);
 }
 
 .verify-result-box {
-  border: 1px solid #67c23a;
-  background: #f0f9eb;
-  border-radius: 6px;
+  border: 1px solid var(--app-color-success);
+  background: var(--el-color-success-light-9);
+  border-radius: 8px;
   padding: 16px;
   margin-top: 12px;
 }
 
 .verify-result-box.revoked {
-  border-color: #f56c6c;
-  background: #fef0f0;
+  border-color: var(--app-color-danger);
+  background: var(--el-color-danger-light-9);
 }
 
 .verify-status-banner {
@@ -950,14 +973,14 @@ onMounted(() => {
   gap: 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #67c23a;
+  color: var(--app-color-success);
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px dashed rgba(103, 194, 58, 0.3);
 }
 
 .verify-result-box.revoked .verify-status-banner {
-  color: #f56c6c;
+  color: var(--app-color-danger);
   border-bottom-color: rgba(245, 108, 108, 0.3);
 }
 
@@ -972,17 +995,17 @@ onMounted(() => {
 
 .verify-row .k {
   width: 80px;
-  color: #606266;
+  color: var(--app-text-2);
 }
 
 .verify-row .v {
   flex: 1;
-  color: #303133;
+  color: var(--app-text-1);
 }
 
 .verify-row.time {
   font-size: 11px;
-  color: #909399;
+  color: var(--app-text-3);
   margin-top: 6px;
 }
 
@@ -997,7 +1020,7 @@ onMounted(() => {
 .cert-qrcode {
   background: #ffffff;
   padding: 4px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }

@@ -239,7 +239,7 @@ const formatTime = (timeStr?: string) => {
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
           <el-button :icon="Refresh" @click="handleRefreshAll">刷新</el-button>
-          <el-button type="success" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出考勤明细</el-button>
+          <el-button type="primary" plain :icon="Download" :loading="exportLoading" @click="handleExport">导出考勤明细</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -248,32 +248,33 @@ const formatTime = (timeStr?: string) => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 320px)"
         :data="recordList"
         stripe
         border
         style="width: 100%"
       >
-        <el-table-column prop="id" label="记录ID" width="85" align="center" />
+        <el-table-column prop="id" label="记录ID" width="80" align="center" />
 
-        <el-table-column prop="studentNo" label="学号" width="130">
+        <el-table-column prop="studentNo" label="学号" width="116">
           <template #default="{ row }">
             <span class="mono-code">{{ row.studentNo || '-' }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="studentName" label="学生姓名" width="120">
+        <el-table-column prop="studentName" label="学生姓名" width="110">
           <template #default="{ row }">
             <span class="student-name-text">{{ row.studentName || '匿名学生' }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="activityTitle" label="参与活动名称" min-width="200" show-overflow-tooltip>
+        <el-table-column prop="activityTitle" label="参与活动名称" min-width="175" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="activity-title-link">{{ row.activityTitle || '-' }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" label="参与状态" width="130" align="center">
+        <el-table-column prop="status" label="参与状态" width="116" align="center">
           <template #default="{ row }">
             <el-tag
               v-if="row.status === 2"
@@ -303,7 +304,7 @@ const formatTime = (timeStr?: string) => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="pointsAwarded" label="发放学分" width="105" align="center">
+        <el-table-column prop="pointsAwarded" label="发放积分" width="100" align="center">
           <template #default="{ row }">
             <span v-if="row.status === 2 && row.pointsAwarded > 0" class="points-awarded-text">
               +{{ row.pointsAwarded }} 分
@@ -312,13 +313,13 @@ const formatTime = (timeStr?: string) => {
           </template>
         </el-table-column>
 
-        <el-table-column prop="signupTime" label="报名时间" width="165" align="center">
+        <el-table-column prop="signupTime" label="报名时间" width="142" align="center">
           <template #default="{ row }">
             <span class="time-text">{{ formatTime(row.signupTime) }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="checkinTime" label="打卡签到时间" width="165" align="center">
+        <el-table-column prop="checkinTime" label="打卡签到时间" width="142" align="center">
           <template #default="{ row }">
             <span v-if="row.checkinTime" class="time-text text-success">
               {{ formatTime(row.checkinTime) }}
@@ -327,7 +328,7 @@ const formatTime = (timeStr?: string) => {
           </template>
         </el-table-column>
 
-        <el-table-column label="打卡距离/位置" width="150" align="center">
+        <el-table-column label="打卡距离/位置" width="132" align="center">
           <template #default="{ row }">
             <div v-if="row.status === 2 && row.checkinDistance !== undefined && row.checkinDistance !== null">
               <el-tooltip
@@ -387,7 +388,7 @@ const formatTime = (timeStr?: string) => {
           </el-descriptions-item>
 
           <el-descriptions-item label="参与活动名称" :span="2">
-            <span style="font-weight: 600; color: #303133;">{{ currentRecord.activityTitle }}</span>
+            <span style="font-weight: 600; color: var(--app-text-1);">{{ currentRecord.activityTitle }}</span>
             <span class="text-muted" style="margin-left: 8px;">(ID: {{ currentRecord.activityId }})</span>
           </el-descriptions-item>
 
@@ -407,8 +408,8 @@ const formatTime = (timeStr?: string) => {
             </el-tag>
           </el-descriptions-item>
 
-          <el-descriptions-item label="获得奖励学分">
-            <span style="color: #e6a23c; font-weight: bold; font-size: 15px;">
+          <el-descriptions-item label="获得奖励积分">
+            <span style="color: var(--app-color-warning); font-weight: bold; font-size: 15px;">
               +{{ currentRecord.pointsAwarded || 0 }} 积分
             </span>
           </el-descriptions-item>
@@ -470,7 +471,7 @@ const formatTime = (timeStr?: string) => {
 
 .stat-card {
   border-radius: 8px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--app-border-lighter);
   transition: all 0.3s ease;
 }
 
@@ -488,7 +489,7 @@ const formatTime = (timeStr?: string) => {
 .stat-icon-wrapper {
   width: 48px;
   height: 48px;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,19 +498,19 @@ const formatTime = (timeStr?: string) => {
 }
 
 .bg-blue {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--app-color-primary), var(--app-color-primary));
 }
 
 .bg-green {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--app-color-success), var(--app-color-success));
 }
 
 .bg-orange {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--app-color-warning), var(--app-color-warning));
 }
 
 .bg-purple {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(135deg, var(--app-accent-purple-light), var(--app-accent-purple-dark));
 }
 
 .stat-info {
@@ -518,7 +519,7 @@ const formatTime = (timeStr?: string) => {
 
 .stat-title {
   font-size: 13px;
-  color: #909399;
+  color: var(--app-text-3);
   margin-bottom: 4px;
 }
 
@@ -528,10 +529,10 @@ const formatTime = (timeStr?: string) => {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.text-blue { color: #1d4ed8; }
-.text-green { color: #059669; }
-.text-orange { color: #d97706; }
-.text-purple { color: #6d28d9; }
+.text-blue { color: var(--app-color-primary); }
+.text-green { color: var(--app-color-success); }
+.text-orange { color: var(--app-color-warning); }
+.text-purple { color: var(--app-accent-purple-dark); }
 
 /* 筛选表单 */
 .filter-card {
@@ -557,40 +558,40 @@ const formatTime = (timeStr?: string) => {
 .mono-code {
   font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
   font-size: 13px;
-  color: #409eff;
-  background-color: #ecf5ff;
+  color: var(--app-color-primary);
+  background-color: var(--el-color-primary-light-9);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .student-name-text {
   font-weight: 500;
-  color: #303133;
+  color: var(--app-text-1);
 }
 
 .activity-title-link {
   font-weight: 600;
-  color: #303133;
+  color: var(--app-text-1);
 }
 
 .points-awarded-text {
-  color: #e6a23c;
+  color: var(--app-color-warning);
   font-weight: bold;
   font-size: 14px;
 }
 
 .time-text {
   font-size: 13px;
-  color: #606266;
+  color: var(--app-text-2);
 }
 
 .text-success {
-  color: #67c23a;
+  color: var(--app-color-success);
   font-weight: 500;
 }
 
 .text-muted {
-  color: #c0c4cc;
+  color: var(--app-text-4);
   font-size: 13px;
 }
 

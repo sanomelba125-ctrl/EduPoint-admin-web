@@ -228,9 +228,9 @@ function getProgressStatus(row: ActivityVO): '' | 'success' | 'exception' | 'war
 
 // 二维码倒计时颜色
 const countdownColor = computed(() => {
-  if (qrCountdown.value <= 5) return '#f56c6c'
-  if (qrCountdown.value <= 10) return '#e6a23c'
-  return '#67c23a'
+  if (qrCountdown.value <= 5) return 'var(--app-color-danger)'
+  if (qrCountdown.value <= 10) return 'var(--app-color-warning)'
+  return 'var(--app-color-success)'
 })
 </script>
 
@@ -283,7 +283,7 @@ const countdownColor = computed(() => {
         <el-form-item>
           <el-button :icon="Search" type="primary" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button :icon="Download" type="success" plain :loading="exportLoading" @click="handleExport">导出活动清单</el-button>
+          <el-button :icon="Download" type="primary" plain :loading="exportLoading" @click="handleExport">导出活动清单</el-button>
         </el-form-item>
         <el-form-item style="margin-left: auto;">
           <el-button type="primary" :icon="Plus" @click="toCreate">发布新活动</el-button>
@@ -295,18 +295,19 @@ const countdownColor = computed(() => {
     <el-card shadow="never" class="table-card">
       <el-table
         v-loading="loading"
+        max-height="calc(100vh - 366px)"
         :data="tableData"
         stripe
         style="width: 100%;"
         row-key="id"
       >
-        <el-table-column label="编号" width="70" align="center">
+        <el-table-column label="编号" width="84" align="center">
           <template #default="{ row }">
             <span class="id-text">#{{ String(row.id).padStart(3, '0') }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="活动名称" min-width="200">
+        <el-table-column label="活动名称" min-width="175">
           <template #default="{ row }">
             <div class="activity-title">{{ row.title }}</div>
             <div v-if="row.locationName" class="activity-location">
@@ -316,7 +317,7 @@ const countdownColor = computed(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="业务分类" width="110" align="center">
+        <el-table-column label="业务分类" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="getCategoryTagType(row.category)" size="small">
               {{ getCategoryLabel(row.category) }}
@@ -324,20 +325,20 @@ const countdownColor = computed(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="起止时间" width="210">
+        <el-table-column label="起止时间" width="180">
           <template #default="{ row }">
             <div class="time-text">{{ row.startTime }}</div>
             <div class="time-text secondary">→ {{ row.endTime }}</div>
           </template>
         </el-table-column>
 
-        <el-table-column label="奖励积分" width="100" align="right">
+        <el-table-column label="奖励积分" width="95" align="right">
           <template #default="{ row }">
-            <span class="points-text">+{{ row.points }} pts</span>
+            <span class="points-text">+{{ row.points }} 积分</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="报名 / 容量" width="160">
+        <el-table-column label="报名 / 容量" width="140">
           <template #default="{ row }">
             <div class="enroll-info">
               <span>{{ row.participantCount ?? 0 }} / {{ row.registrationLimit ?? '不限' }} 人</span>
@@ -353,7 +354,7 @@ const countdownColor = computed(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="活动状态" width="100" align="center">
+        <el-table-column label="活动状态" width="95" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
               {{ getStatusLabel(row.status) }}
@@ -361,10 +362,11 @@ const countdownColor = computed(() => {
           </template>
         </el-table-column>
 
-        <el-table-column label="防伪证书" width="90" align="center">
+        <el-table-column label="防伪证书" width="92" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.certificateEnabled" type="warning" size="small">颁发</el-tag>
-            <span v-else class="text-disabled">-</span>
+            <!-- 两态统一为 tag：已开启 / 未开启（原实现为 tag 与裸 "-" 混排，扫视成本高） -->
+            <el-tag v-if="row.certificateEnabled" type="success" effect="light" size="small">已开启</el-tag>
+            <el-tag v-else type="info" effect="plain" size="small">未开启</el-tag>
           </template>
         </el-table-column>
 
@@ -551,9 +553,6 @@ const countdownColor = computed(() => {
   font-size: 12px;
   color: var(--el-text-color-regular);
 }
-.text-disabled {
-  color: var(--el-text-color-disabled);
-}
 
 /* 分页 */
 .pagination-wrap {
@@ -588,7 +587,7 @@ const countdownColor = computed(() => {
 }
 .qr-meta {
   background: var(--el-fill-color-light);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 12px 16px;
   text-align: left;
 }

@@ -119,7 +119,7 @@ const handleUpload = async (options: any) => {
       />
       <div class="url-tip">
         <span v-if="model" class="qiniu-status">
-          <el-icon color="#67c23a"><Check /></el-icon> 七牛云存储地址就绪
+          <el-icon color="var(--app-color-success)"><Check /></el-icon> 七牛云存储地址就绪
           <el-button link type="danger" size="small" style="margin-left: 8px;" @click="model = ''">
             清空
           </el-button>
