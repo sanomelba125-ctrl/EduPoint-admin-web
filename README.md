@@ -55,10 +55,14 @@ admin-web/src/
 # 1. 安装依赖
 npm install
 
-# 2. 启动本地开发服务 (默认监听 3000 端口)
+# 2. 配置环境变量 (可选，若需使用高德地图选址导航)
+# 复制 .env.example 为 .env.local 并配置 VITE_AMAP_KEY 与 VITE_AMAP_SECURITY_JS_CODE
+cp .env.example .env.local
+
+# 3. 启动本地开发服务 (默认监听 3000 端口)
 npm run dev
 
-# 3. 生产环境构建
+# 4. 生产环境构建
 npm run build
 ```
 

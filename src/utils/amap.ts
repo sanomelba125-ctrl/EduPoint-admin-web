@@ -3,8 +3,8 @@
  */
 
 export const AMAP_CONFIG = {
-  key: 'f2bb704018d6fb8aafa3d1bcb880b62d',
-  securityJsCode: '77b5607769c0e45c2ad22c6b454220ca',
+  key: (import.meta.env.VITE_AMAP_KEY as string) || '',
+  securityJsCode: (import.meta.env.VITE_AMAP_SECURITY_JS_CODE as string) || '',
   version: '2.0'
 }
 
@@ -47,6 +47,11 @@ export function loadAMapSDK(): Promise<any> {
 
   if (amapLoadPromise) {
     return amapLoadPromise
+  }
+
+  if (!AMAP_CONFIG.key) {
+    console.warn('[AMap] 未配置 VITE_AMAP_KEY，跳过高德地图 SDK 加载')
+    return Promise.reject(new Error('未配置高德地图 API Key (VITE_AMAP_KEY)'))
   }
 
   amapLoadPromise = new Promise((resolve, reject) => {
